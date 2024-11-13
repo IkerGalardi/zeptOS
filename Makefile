@@ -61,27 +61,7 @@ CFLAGS += -fno-stack-protector -fno-pie
 
 LDFLAGS = -z max-page-size=4096
 
-USER_OBJECT = build/obj/user/cat.o \
-              build/obj/user/echo.o \
-              build/obj/user/forktest.o \
-              build/obj/user/grep.o \
-              build/obj/user/grind.o \
-              build/obj/user/init.o \
-              build/obj/user/initcode.o \
-              build/obj/user/kill.o \
-              build/obj/user/ln.o \
-              build/obj/user/ls.o \
-              build/obj/user/mkdir.o \
-              build/obj/user/printf.o \
-              build/obj/user/rm.o \
-              build/obj/user/sh.o \
-              build/obj/user/stressfs.o \
-              build/obj/user/ulib.o \
-              build/obj/user/umalloc.o \
-              build/obj/user/usertests.o \
-              build/obj/user/wc.o \
-              build/obj/user/zombie.o \
-              build/obj/user/usys.o
+.PRECIOUS: build/obj/user/%.o
 
 all: $(RESULTS)
 

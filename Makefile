@@ -15,7 +15,8 @@ RESULTS=build/opensbi-dynamic.bin \
         build/usertests \
         build/grind \
         build/wc \
-        build/zombie
+        build/zombie \
+        build/mkfs
 
 KERNEL_OBJ = build/obj/kernel/entry.o \
              build/obj/kernel/start.o \
@@ -116,6 +117,10 @@ user/usys.S : user/usys.pl
 build/opensbi-dynamic.bin:
 	make -C firmware/ LLVM=1 PLATFORM=generic
 	mv firmware/build/platform/generic/firmware/fw_dynamic.bin build/opensbi-dynamic.bin
+
+build/mkfs: tools/mkfs.c
+	@echo "Compiling $<"
+	@ clang -o $@ $< -I.
 
 clean:
 	rm -f $(RESULTS) build/obj/*/*.d build/obj/*/*.o user/usys.S

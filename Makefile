@@ -1,22 +1,23 @@
 RESULTS=build/opensbi-dynamic.bin \
         build/kernel.elf \
-        build/cat \
-        build/echo \
-        build/forktest \
-        build/grep \
-        build/init \
-        build/kill \
-        build/ln \
-        build/ls \
-        build/mkdir \
-        build/rm \
-        build/sh \
-        build/stressfs \
-        build/usertests \
-        build/grind \
-        build/wc \
-        build/zombie \
-        build/mkfs
+        build/fs.img
+
+USER_PROGS = build/_cat \
+             build/_echo \
+             build/_forktest \
+             build/_grep \
+             build/_init \
+             build/_kill \
+             build/_ln \
+             build/_ls \
+             build/_mkdir \
+             build/_rm \
+             build/_sh \
+             build/_stressfs \
+             build/_usertests \
+             build/_grind \
+             build/_wc \
+             build/_zombie \
 
 KERNEL_OBJ = build/obj/kernel/entry.o \
              build/obj/kernel/start.o \
@@ -85,9 +86,13 @@ build/obj/user/%.o: user/%.c
 	@echo "Compiling $<"
 	@ clang --target=riscv64 -c -o $@ $< $(CFLAGS) -Ikernel/
 
+build/mkfs: tools/mkfs.c kernel/fs.h kernel/param.h
+	@echo "Compiling $<"
+	@ clang -o $@ $< -I.
+
 ULIB = build/obj/user/ulib.o build/obj/user/usys.o build/obj/user/printf.o build/obj/user/umalloc.o
 
-build/%: build/obj/user/%.o $(ULIB)
+build/_%: build/obj/user/%.o $(ULIB)
 	@echo "Linking $@"
 	@ ld.lld $(LDFLAGS) -T user/user.ld -o $@ $< $(ULIB)
 
@@ -98,12 +103,13 @@ build/opensbi-dynamic.bin:
 	make -C firmware/ LLVM=1 PLATFORM=generic
 	mv firmware/build/platform/generic/firmware/fw_dynamic.bin build/opensbi-dynamic.bin
 
-build/mkfs: tools/mkfs.c
-	@echo "Compiling $<"
-	@ clang -o $@ $< -I.
+
+build/fs.img: $(USER_PROGS) build/mkfs
+	@echo "Building fs.img"
+	@ build/mkfs build/fs.img $(USER_PROGS)
 
 clean:
-	rm -f $(RESULTS) build/obj/*/*.d build/obj/*/*.o user/usys.S
+	rm -f $(RESULTS) build/obj/*/*.d build/obj/*/*.o user/usys.S $(USER_PROGS)
 
 qemu: $(RESULTS)
 	qemu-system-riscv64 -bios build/opensbi-dynamic.bin -serial stdio

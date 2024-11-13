@@ -111,5 +111,13 @@ build/fs.img: $(USER_PROGS) build/mkfs
 clean:
 	rm -f $(RESULTS) build/obj/*/*.d build/obj/*/*.o user/usys.S $(USER_PROGS)
 
+QEMUOPTS = -machine virt -bios none -kernel build/kernel.elf -m 128M -smp 3 -nographic
+QEMUOPTS += -global virtio-mmio.force-legacy=false
+QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
+QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+qemu-mmode:
+	qemu-system-riscv64 $(QEMUOPTS)
+
 qemu: $(RESULTS)
 	qemu-system-riscv64 -bios build/opensbi-dynamic.bin -serial stdio

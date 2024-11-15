@@ -8,6 +8,7 @@ all: $(RESULTS)
 
 clean:
 	rm -f $(RESULTS)
+	make -C firmware/ clean
 
 qemu: $(RESULTS)
 	qemu-system-riscv64 -bios build/opensbi-dynamic.bin -serial stdio

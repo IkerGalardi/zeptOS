@@ -1,2 +1,15 @@
 firmware/build/
 build/
+os/kernel/*.o
+os/kernel/*.d
+os/kernel/*.asm
+os/kernel/*.sym
+os/user/*.o
+os/user/*.d
+os/user/*.asm
+os/user/*.sym
+os/user/_*
+os/user/initcode
+os/user/initcode.out
+os/user/usys.S
+os/mkfs/mkfs

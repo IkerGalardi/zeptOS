@@ -19,21 +19,21 @@
 // some have different meanings for
 // read vs write.
 // see http://byterunner.com/16550.html
-#define RHR 0                 // receive holding register (for input bytes)
-#define THR 0                 // transmit holding register (for output bytes)
-#define IER 1                 // interrupt enable register
+#define RHR 0                  // receive holding register (for input bytes)
+#define THR 0                  // transmit holding register (for output bytes)
+#define IER 1                  // interrupt enable register
 #define IER_RX_ENABLE (1<<0)
 #define IER_TX_ENABLE (1<<1)
-#define FCR 2                 // FIFO control register
+#define FCR 2                  // FIFO control register
 #define FCR_FIFO_ENABLE (1<<0)
-#define FCR_FIFO_CLEAR (3<<1) // clear the content of the two FIFOs
-#define ISR 2                 // interrupt status register
-#define LCR 3                 // line control register
+#define FCR_FIFO_CLEAR (3<<1)  // clear the content of the two FIFOs
+#define ISR 2                                 // interrupt status register
+#define LCR 3                                 // line control register
 #define LCR_EIGHT_BITS (3<<0)
-#define LCR_BAUD_LATCH (1<<7) // special mode to set baud rate
-#define LSR 5                 // line status register
-#define LSR_RX_READY (1<<0)   // input is waiting to be read from RHR
-#define LSR_TX_IDLE (1<<5)    // THR can accept another character to send
+#define LCR_BAUD_LATCH (1<<7)  // special mode to set baud rate
+#define LSR 5                                 // line status register
+#define LSR_RX_READY (1<<0)    // input is waiting to be read from RHR
+#define LSR_TX_IDLE (1<<5)     // THR can accept another character to send
 
 #define ReadReg(reg) (*(Reg(reg)))
 #define WriteReg(reg, v) (*(Reg(reg)) = (v))
@@ -52,29 +52,29 @@ void uartstart();
 void
 uartinit(void)
 {
-  // disable interrupts.
-  WriteReg(IER, 0x00);
+    // disable interrupts.
+    WriteReg(IER, 0x00);
 
-  // special mode to set baud rate.
-  WriteReg(LCR, LCR_BAUD_LATCH);
+    // special mode to set baud rate.
+    WriteReg(LCR, LCR_BAUD_LATCH);
 
-  // LSB for baud rate of 38.4K.
-  WriteReg(0, 0x03);
+    // LSB for baud rate of 38.4K.
+    WriteReg(0, 0x03);
 
-  // MSB for baud rate of 38.4K.
-  WriteReg(1, 0x00);
+    // MSB for baud rate of 38.4K.
+    WriteReg(1, 0x00);
 
-  // leave set-baud mode,
-  // and set word length to 8 bits, no parity.
-  WriteReg(LCR, LCR_EIGHT_BITS);
+    // leave set-baud mode,
+    // and set word length to 8 bits, no parity.
+    WriteReg(LCR, LCR_EIGHT_BITS);
 
-  // reset and enable FIFOs.
-  WriteReg(FCR, FCR_FIFO_ENABLE | FCR_FIFO_CLEAR);
+    // reset and enable FIFOs.
+    WriteReg(FCR, FCR_FIFO_ENABLE | FCR_FIFO_CLEAR);
 
-  // enable transmit and receive interrupts.
-  WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);
+    // enable transmit and receive interrupts.
+    WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);
 
-  initlock(&uart_tx_lock, "uart");
+    initlock(&uart_tx_lock, "uart");
 }
 
 // add a character to the output buffer and tell the
@@ -86,21 +86,21 @@ uartinit(void)
 void
 uartputc(int c)
 {
-  acquire(&uart_tx_lock);
+    acquire(&uart_tx_lock);
 
-  if(panicked){
-    for(;;)
-      ;
-  }
-  while(uart_tx_w == uart_tx_r + UART_TX_BUF_SIZE){
-    // buffer is full.
-    // wait for uartstart() to open up space in the buffer.
-    sleep(&uart_tx_r, &uart_tx_lock);
-  }
-  uart_tx_buf[uart_tx_w % UART_TX_BUF_SIZE] = c;
-  uart_tx_w += 1;
-  uartstart();
-  release(&uart_tx_lock);
+    if(panicked){
+        for(;;)
+            ;
+    }
+    while(uart_tx_w == uart_tx_r + UART_TX_BUF_SIZE){
+        // buffer is full.
+        // wait for uartstart() to open up space in the buffer.
+        sleep(&uart_tx_r, &uart_tx_lock);
+    }
+    uart_tx_buf[uart_tx_w % UART_TX_BUF_SIZE] = c;
+    uart_tx_w += 1;
+    uartstart();
+    release(&uart_tx_lock);
 }
 
 
@@ -111,19 +111,19 @@ uartputc(int c)
 void
 uartputc_sync(int c)
 {
-  push_off();
+    push_off();
 
-  if(panicked){
-    for(;;)
-      ;
-  }
+    if(panicked){
+        for(;;)
+            ;
+    }
 
-  // wait for Transmit Holding Empty to be set in LSR.
-  while((ReadReg(LSR) & LSR_TX_IDLE) == 0)
-    ;
-  WriteReg(THR, c);
+    // wait for Transmit Holding Empty to be set in LSR.
+    while((ReadReg(LSR) & LSR_TX_IDLE) == 0)
+        ;
+    WriteReg(THR, c);
 
-  pop_off();
+    pop_off();
 }
 
 // if the UART is idle, and a character is waiting
@@ -133,27 +133,27 @@ uartputc_sync(int c)
 void
 uartstart()
 {
-  while(1){
-    if(uart_tx_w == uart_tx_r){
-      // transmit buffer is empty.
-      return;
+    while(1){
+        if(uart_tx_w == uart_tx_r){
+            // transmit buffer is empty.
+            return;
+        }
+        
+        if((ReadReg(LSR) & LSR_TX_IDLE) == 0){
+            // the UART transmit holding register is full,
+            // so we cannot give it another byte.
+            // it will interrupt when it's ready for a new byte.
+            return;
+        }
+        
+        int c = uart_tx_buf[uart_tx_r % UART_TX_BUF_SIZE];
+        uart_tx_r += 1;
+        
+        // maybe uartputc() is waiting for space in the buffer.
+        wakeup(&uart_tx_r);
+        
+        WriteReg(THR, c);
     }
-    
-    if((ReadReg(LSR) & LSR_TX_IDLE) == 0){
-      // the UART transmit holding register is full,
-      // so we cannot give it another byte.
-      // it will interrupt when it's ready for a new byte.
-      return;
-    }
-    
-    int c = uart_tx_buf[uart_tx_r % UART_TX_BUF_SIZE];
-    uart_tx_r += 1;
-    
-    // maybe uartputc() is waiting for space in the buffer.
-    wakeup(&uart_tx_r);
-    
-    WriteReg(THR, c);
-  }
 }
 
 // read one input character from the UART.
@@ -161,12 +161,12 @@ uartstart()
 int
 uartgetc(void)
 {
-  if(ReadReg(LSR) & 0x01){
-    // input data is ready.
-    return ReadReg(RHR);
-  } else {
-    return -1;
-  }
+    if(ReadReg(LSR) & 0x01){
+        // input data is ready.
+        return ReadReg(RHR);
+    } else {
+        return -1;
+    }
 }
 
 // handle a uart interrupt, raised because input has
@@ -175,16 +175,16 @@ uartgetc(void)
 void
 uartintr(void)
 {
-  // read and process incoming characters.
-  while(1){
-    int c = uartgetc();
-    if(c == -1)
-      break;
-    consoleintr(c);
-  }
+    // read and process incoming characters.
+    while(1){
+        int c = uartgetc();
+        if(c == -1)
+            break;
+        consoleintr(c);
+    }
 
-  // send buffered characters.
-  acquire(&uart_tx_lock);
-  uartstart();
-  release(&uart_tx_lock);
+    // send buffered characters.
+    acquire(&uart_tx_lock);
+    uartstart();
+    release(&uart_tx_lock);
 }

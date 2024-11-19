@@ -9,7 +9,7 @@
 // 10000000 -- uart0 
 // 10001000 -- virtio disk 
 // 80000000 -- boot ROM jumps here in machine mode
-//             -kernel loads the kernel here
+//                         -kernel loads the kernel here
 // unused RAM after 80000000.
 
 // the kernel uses physical memory thus:
@@ -54,11 +54,11 @@
 
 // User memory layout.
 // Address zero first:
-//   text
-//   original data and bss
-//   fixed-size stack
-//   expandable heap
-//   ...
-//   TRAPFRAME (p->trapframe, used by the trampoline)
-//   TRAMPOLINE (the same page as in the kernel)
+//     text
+//     original data and bss
+//     fixed-size stack
+//     expandable heap
+//     ...
+//     TRAPFRAME (p->trapframe, used by the trampoline)
+//     TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)

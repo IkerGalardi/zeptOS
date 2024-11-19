@@ -28,7 +28,8 @@ OBJS = \
   $K/sysfile.o \
   $K/kernelvec.o \
   $K/plic.o \
-  $K/virtio_disk.o
+  $K/virtio_disk.o \
+  $K/sbi.o
 
 CC=riscv64-linux-gnu-gcc
 AS=riscv64-linux-gnu-as

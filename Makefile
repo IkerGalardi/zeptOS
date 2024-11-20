@@ -27,8 +27,13 @@ clean:
 	make -C firmware/ clean
 	make -C os clean
 
+QEMUOPTS  = -machine virt -bios build/opensbi-dynamic.bin -kernel build/kernel
+QEMUOPTS += -m 128M -smp 4 -nographic -global virtio-mmio.force-legacy=false
+QEMUOPTS += -drive file=build/fs.img,if=none,format=raw,id=x0
+QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
 qemu-mmode: $(RESULT)
 	make -C os/ qemu
 
 qemu: $(RESULTS)
-	qemu-system-riscv64 -bios build/opensbi-dynamic.bin -serial stdio
+	qemu-system-riscv64 $(QEMUOPTS)

@@ -37,3 +37,11 @@ qemu-mmode: $(RESULT)
 
 qemu: $(RESULTS)
 	qemu-system-riscv64 $(QEMUOPTS)
+
+.gdbinit:
+	make -C os .gdbinit
+	mv os/.gdbinit .gdbinit
+
+qemu-gdb: build/kernel .gdbinit build/fs.img
+	rm -f .dbg-socket
+	qemu-system-riscv64 $(QEMUOPTS) -S -s

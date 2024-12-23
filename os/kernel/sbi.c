@@ -1,6 +1,6 @@
 #include "sbi.h"
 
-static inline struct sbiret ecall(int extension, int function, 
+static inline struct sbiret ecall(int extension, int function,
                                   uint64 arg0,
                                   uint64 arg1,
                                   uint64 arg2,
@@ -86,4 +86,19 @@ struct sbiret sbi_debug_console_write(uint64 num_bytes, void *addr)
     uint32 lower = ptr & 0xffffffff;
     uint32 upper = ((ptr) >> 16) >> 16;
     return ecall(SBI_EXTENSION_DBCN, 0, num_bytes, lower, upper, 0, 0, 0);
+}
+
+struct sbiret sbi_hart_start(uint64 hartid, uint64 addr, uint64 opaque)
+{
+    return ecall(SBI_EXTENSION_HSM, 0, hartid, addr, opaque, 0, 0, 0);
+}
+
+struct sbiret sbi_hart_stop()
+{
+    return ecall(SBI_EXTENSION_HSM, 1, 0, 0, 0, 0, 0, 0);
+}
+
+struct sbiret sbi_hart_get_status(uint64 hartid)
+{
+    return ecall(SBI_EXTENSION_HSM, 2, hartid, 0, 0, 0, 0, 0);
 }

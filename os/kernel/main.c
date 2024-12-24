@@ -5,6 +5,7 @@
 #include "defs.h"
 #include "sbi.h"
 
+extern void _entry();
 
 // start() jumps here in supervisor mode on all CPUs.
 void
@@ -39,6 +40,33 @@ main()
     printf("kernel(%d): virtio disk driver initialized\n", cpuid());
     userinit();         // first user process
     printf("kernel(%d): first program initialized\n", cpuid());
+
+    if (sbi_probe_extension(SBI_EXTENSION_HSM) != 0) {
+        printf("kernel(%d): HSM extension available, starting other cores\n",
+                cpuid());
+
+        for (int i = 0; i < NCPU; i++) {
+            if (i == cpuid())
+                continue;
+
+            struct sbiret res = sbi_hart_start(i, (uint64)(&_entry), 0);
+
+            // INVALID_PARAM is returned when hartid is an invalid hart. Assuming
+            // that all valid hartid's are contiguous, we've already runned out
+            // of cores so we should stop asking for more startings.
+            if (res.error == SBI_ERR_INVALID_PARAM)
+                break;
+
+            // TODO: should we panic?
+            if (res.error != SBI_SUCCESS) {
+                printf("kernel(%d): could not start hart %d, with code %d\n",
+                        cpuid(), i, (int)res.error);
+            }
+        }
+    } else {
+        printf("kernel(%d): HSM extension not available, only single core used\n",
+                cpuid());
+    }
 
     scheduler();
 }

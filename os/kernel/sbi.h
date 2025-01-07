@@ -32,7 +32,7 @@ enum sbiext
     SBI_EXTENSION_TIME = 0x54494D45,
     SBI_EXTENSION_IPI  = 0x735049,
     SBI_EXTENSION_RFNC = 0x52464E43,
-    SBI_EXTENSION_HSM  = 0x4853D,
+    SBI_EXTENSION_HSM  = 0x48534D,
     SBI_EXTENSION_SRST = 0x53525354,
     SBI_EXTENSION_PMU  = 0x504D55,
     SBI_EXTENSION_DBCN = 0x4442434E,
@@ -40,6 +40,17 @@ enum sbiext
     SBI_EXTENSION_CPPC = 0x43505043,
     SBI_EXTENSION_NACL = 0x4E41434C,
     SBI_EXTENSION_STA  = 0x535441,
+};
+
+enum sbistate
+{
+    SBI_STATE_STARTED         = 0,
+    SBI_STATE_STOPPED         = 1,
+    SBI_STATE_START_PENDING   = 2,
+    SBI_STATE_STOP_PENDING    = 3,
+    SBI_STATE_SUSPENDED       = 4,
+    SBI_STATE_SUSPEND_PENDING = 5,
+    SBI_STATE_RESUME_PENDING  = 6,
 };
 
 uint32 sbi_get_spec_version();
@@ -59,5 +70,11 @@ uint64 sbi_get_marchid();
 uint64 sbi_get_mimpid();
 
 struct sbiret sbi_debug_console_write(uint64 num_bytes, void *addr);
+
+struct sbiret sbi_hart_start(uint64 hartid, uint64 addr, uint64 opaque);
+
+struct sbiret sbi_hart_stop();
+
+struct sbiret sbi_hart_get_status(uint64 hartid);
 
 #endif // OS_KERNEL_SBI

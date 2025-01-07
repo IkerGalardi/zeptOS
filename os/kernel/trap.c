@@ -1,3 +1,4 @@
+#include "sbi.h"
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
@@ -201,9 +202,8 @@ devintr()
             plic_complete(irq);
 
         return 1;
-    } else if(scause == 0x8000000000000001L){
-        // software interrupt from a machine-mode timer interrupt,
-        // forwarded by timervec in kernelvec.S.
+    } else if ((scause & 0x8000000000000000L) && (scause & 0xff) == 5){
+        // timer interrupt configured by SBI firmware.
 
         if(cpuid() == 0){
             clockintr();

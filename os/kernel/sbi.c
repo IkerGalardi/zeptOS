@@ -62,7 +62,7 @@ uint64 sbi_get_impl_version()
 
 uint64 sbi_probe_extension(enum sbiext extension_id)
 {
-    return ecall(SBI_EXTENSION_BASE, 3, 0, 0, 0, 0, 0, 0).value;
+    return ecall(SBI_EXTENSION_BASE, 3, extension_id, 0, 0, 0, 0, 0).value;
 }
 
 uint64 sbi_get_mvendorid()

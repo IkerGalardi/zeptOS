@@ -68,6 +68,9 @@ main()
                 cpuid());
     }
 
+    // ask for clock interrupts.
+    sbi_set_timer(r_time() + 1000000);
+
     scheduler();
 }
 
@@ -80,6 +83,9 @@ void main_secondary()
     printf("kernel(%d): traps initialized\n", cpuid());
     plicinithart();     // ask PLIC for device interrupts
     printf("kernel(%d): local interrupt controller initialized\n", cpuid());
+
+    // ask for clock interrupts.
+    sbi_set_timer(r_time() + 1000000);
 
     scheduler();
 }

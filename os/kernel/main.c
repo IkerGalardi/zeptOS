@@ -9,7 +9,7 @@ extern void _entry();
 
 // start() jumps here in supervisor mode on all CPUs.
 void
-main()
+main(void *fdt)
 {
     sbi_debug_console_write(20, "\nxv6 kernel booting\n");
     printfinit();

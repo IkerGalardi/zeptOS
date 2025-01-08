@@ -4,6 +4,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "sbi.h"
+#include "dtb.h"
 
 extern void _entry();
 
@@ -15,6 +16,7 @@ main(void *fdt)
     printfinit();
     consoleinit();
     printf("kernel(%d): console initialized\n", cpuid());
+    dtbparse(fdt);
     kinit();            // physical page allocator
     printf("kernel(%d): physical page allocator initialized\n", cpuid());
     kvminit();          // create kernel page table

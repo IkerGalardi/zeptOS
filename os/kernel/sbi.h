@@ -69,6 +69,8 @@ uint64 sbi_get_marchid();
 
 uint64 sbi_get_mimpid();
 
+void sbi_set_timer(uint64 stime_value);
+
 struct sbiret sbi_debug_console_write(uint64 num_bytes, void *addr);
 
 struct sbiret sbi_hart_start(uint64 hartid, uint64 addr, uint64 opaque);

@@ -80,6 +80,11 @@ uint64 sbi_get_mimpid()
     return ecall(SBI_EXTENSION_BASE, 6, 0, 0, 0, 0, 0, 0).value;
 }
 
+void sbi_set_timer(uint64 stime_value)
+{
+    ecall(SBI_EXTENSION_TIME, 0, stime_value, 0, 0, 0, 0, 0);
+}
+
 struct sbiret sbi_debug_console_write(uint64 num_bytes, void *addr)
 {
     uint64 ptr = (uint64)addr;

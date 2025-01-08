@@ -31,8 +31,6 @@ start(uint64 hartid, void *fdt)
     // enable interrupts
     w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
 
-    // TODO: ask for clock interrupts.
-
     // keep each CPU's hartid in its tp register, for cpuid().
     w_tp(hartid);
 

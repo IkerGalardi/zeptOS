@@ -38,4 +38,13 @@ void dtbparse(void *fdt)
     printf("kernel(%d): version %d, struct off %x, strings off %x\n", cpuid(),
            BYTESWAP32(header->version), BYTESWAP32(header->off_dt_struct),
            BYTESWAP32(header->off_dt_strings));
+
+    struct fdtreserved *reserved = (struct fdtreserved *)((char *)fdt +
+                                   BYTESWAP32(header->off_mem_rsvmap));
+    while (!(reserved->address == 0 && reserved->size == 0)) {
+        printf("kernel(%d): reserved zone at %lx with size %ld", cpuid(),
+               reserved->address, reserved->size);
+
+        reserved++;
+    }
 }

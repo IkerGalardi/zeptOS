@@ -7,6 +7,12 @@
 #define BYTESWAP32(num) (((num>>24)&0xff) | ((num<<8)&0xff0000) | \
                         ((num>>8)&0xff00) | ((num<<24)&0xff000000))
 
+#define FDT_BEGIN_NODE BYTESWAP32((uint32)0x1)
+#define FDT_END_NODE   BYTESWAP32((uint32)0x2)
+#define FDT_PROP       BYTESWAP32((uint32)0x3)
+#define FDT_NOP        BYTESWAP32((uint32)0x4)
+#define FDT_END        BYTESWAP32((uint32)0x9)
+
 struct fdtheader {
     uint32 magic;
     uint32 totalsize;
@@ -46,5 +52,28 @@ void dtbparse(void *fdt)
                reserved->address, reserved->size);
 
         reserved++;
+    }
+
+    uint32 *property = (uint32 *)((char *)fdt + BYTESWAP32(header->off_dt_struct));
+    char *strings = (char *)fdt + BYTESWAP32(header->off_dt_strings);
+    while (*property != FDT_END) {
+        if (*property == FDT_BEGIN_NODE) {
+            property++;
+            printf("kernel(%d): node %s\n", cpuid(), (char *)property);
+        } else if (*property == FDT_PROP) {
+            uint32 len = BYTESWAP32(*(property + 1));
+            uint32 str_off = BYTESWAP32(*(property + 2));
+
+            printf("kernel(%d): property %s\n", cpuid(), strings + str_off);
+
+            property += len / sizeof(uint32) + 2;
+        } else if (*property == FDT_END_NODE) {
+            printf("kernel(%d): end node\n", cpuid());
+        } else if (*property == FDT_NOP) {
+            property++;
+            printf("kernel(%d): nop\n", cpuid());
+        }
+
+        property++;
     }
 }

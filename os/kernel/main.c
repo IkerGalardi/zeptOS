@@ -17,7 +17,7 @@ main(void *fdt)
     consoleinit();
     printf("kernel(%d): console initialized\n", cpuid());
     dtbparse(fdt);
-    kinit();            // physical page allocator
+    kinit(ram_start, ram_size);            // physical page allocator
     printf("kernel(%d): physical page allocator initialized\n", cpuid());
     kvminit();          // create kernel page table
     printf("kernel(%d): kernel page table initialized \n", cpuid());

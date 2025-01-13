@@ -9,6 +9,8 @@
 #include "riscv.h"
 #include "defs.h"
 
+static uint64 ram_end;
+
 void freerange(void *pa_start, void *pa_end);
 
 extern char end[]; // first address after kernel.
@@ -24,10 +26,13 @@ struct {
 } kmem;
 
 void
-kinit()
+kinit(uint64 ram_start, uint64 ram_size)
 {
     initlock(&kmem.lock, "kmem");
-    freerange(end, (void*)PHYSTOP);
+
+    ram_end = ram_start + ram_size;
+
+    freerange(end, (void*)(ram_end));
 }
 
 void
@@ -48,7 +53,7 @@ kfree(void *pa)
 {
     struct run *r;
 
-    if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+    if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= ram_end)
         panic("kfree");
 
     // Fill with junk to catch dangling refs.

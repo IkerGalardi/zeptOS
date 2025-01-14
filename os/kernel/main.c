@@ -4,18 +4,20 @@
 #include "riscv.h"
 #include "defs.h"
 #include "sbi.h"
+#include "dtb.h"
 
 extern void _entry();
 
 // start() jumps here in supervisor mode on all CPUs.
 void
-main()
+main(void *fdt)
 {
     sbi_debug_console_write(20, "\nxv6 kernel booting\n");
     printfinit();
     consoleinit();
     printf("kernel(%d): console initialized\n", cpuid());
-    kinit();            // physical page allocator
+    dtbparse(fdt);
+    kinit(ram_start, ram_size);            // physical page allocator
     printf("kernel(%d): physical page allocator initialized\n", cpuid());
     kvminit();          // create kernel page table
     printf("kernel(%d): kernel page table initialized \n", cpuid());

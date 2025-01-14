@@ -62,10 +62,6 @@ void dtbparse(void *fdt)
         return;
     }
 
-    printf("kernel(%d): version %d, struct off %x, strings off %x\n", cpuid(),
-           BYTESWAP32(header->version), BYTESWAP32(header->off_dt_struct),
-           BYTESWAP32(header->off_dt_strings));
-
     struct fdtreserved *reserved = (struct fdtreserved *)((char *)fdt +
                                    BYTESWAP32(header->off_mem_rsvmap));
     while (!(reserved->address == 0 && reserved->size == 0)) {
@@ -86,7 +82,6 @@ void dtbparse(void *fdt)
     while (*property != FDT_END) {
         if (*property == FDT_BEGIN_NODE) {
             property++;
-            printf("kernel(%d): node %s\n", cpuid(), (char *)property);
 
             if (node == DEVICE_ROOT && strncmp((char *)property, "memory", 6) == 0) {
                 node = DEVICE_MEMORY;
@@ -95,22 +90,17 @@ void dtbparse(void *fdt)
             uint32 len = BYTESWAP32(*(property + 1));
             uint32 str_off = BYTESWAP32(*(property + 2));
 
-            printf("kernel(%d): property %s\n", cpuid(), strings + str_off);
-
             if (node == DEVICE_MEMORY) {
                 memory_property(strings + str_off, property+1);
             }
 
             property += len / sizeof(uint32) + 2;
         } else if (*property == FDT_END_NODE) {
-            printf("kernel(%d): end node\n", cpuid());
-
             if (node == DEVICE_MEMORY) {
                 node = DEVICE_ROOT;
             }
         } else if (*property == FDT_NOP) {
             property++;
-            printf("kernel(%d): nop\n", cpuid());
         }
 
         property++;

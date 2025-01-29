@@ -59,6 +59,7 @@ static const unsigned long fwft_defined_features[] = {
 	SBI_FWFT_SHADOW_STACK,
 	SBI_FWFT_DOUBLE_TRAP,
 	SBI_FWFT_PTE_AD_HW_UPDATING,
+	SBI_FWFT_POINTER_MASKING_PMLEN,
 };
 
 static bool fwft_is_defined_feature(enum sbi_fwft_feature_t feature)
@@ -71,6 +72,40 @@ static bool fwft_is_defined_feature(enum sbi_fwft_feature_t feature)
 	}
 
 	return false;
+}
+
+static int fwft_menvcfg_set_bit(unsigned long value, unsigned long bit)
+{
+	if (value == 1) {
+		if (bit >= 32 && __riscv_xlen == 32)
+			csr_set(CSR_MENVCFGH, _ULL(1) << (bit - 32));
+		else
+			csr_set(CSR_MENVCFG, _ULL(1) << bit);
+
+	} else if (value == 0) {
+		if (bit >= 32 && __riscv_xlen == 32)
+			csr_clear(CSR_MENVCFGH, _ULL(1) << (bit - 32));
+		else
+			csr_clear(CSR_MENVCFG, _ULL(1) << bit);
+	} else {
+		return SBI_EINVAL;
+	}
+
+	return SBI_OK;
+}
+
+static int fwft_menvcfg_read_bit(unsigned long *value, unsigned long bit)
+{
+	unsigned long cfg;
+
+	if (bit >= 32 && __riscv_xlen == 32)
+		cfg = csr_read(CSR_MENVCFGH) & (_ULL(1) << (bit - 32));
+	else
+		cfg = csr_read(CSR_MENVCFG) & (_ULL(1) << bit);
+
+	*value = cfg != 0;
+
+	return SBI_OK;
 }
 
 static int fwft_misaligned_delegation_supported(struct fwft_config *conf)
@@ -102,6 +137,25 @@ static int fwft_get_misaligned_delegation(struct fwft_config *conf,
 	return SBI_OK;
 }
 
+static int fwft_double_trap_supported(struct fwft_config *conf)
+{
+	if (!sbi_hart_has_extension(sbi_scratch_thishart_ptr(),
+				    SBI_HART_EXT_SSDBLTRP))
+		return SBI_ENOTSUPP;
+
+	return SBI_OK;
+}
+
+static int fwft_set_double_trap(struct fwft_config *conf, unsigned long value)
+{
+	return fwft_menvcfg_set_bit(value, ENVCFG_DTE_SHIFT);
+}
+
+static int fwft_get_double_trap(struct fwft_config *conf, unsigned long *value)
+{
+	return fwft_menvcfg_read_bit(value, ENVCFG_DTE_SHIFT);
+}
+
 static int fwft_adue_supported(struct fwft_config *conf)
 {
 	if (!sbi_hart_has_extension(sbi_scratch_thishart_ptr(),
@@ -113,37 +167,109 @@ static int fwft_adue_supported(struct fwft_config *conf)
 
 static int fwft_set_adue(struct fwft_config *conf, unsigned long value)
 {
-	if (value == 1)
-#if __riscv_xlen == 32
-		csr_set(CSR_MENVCFGH, ENVCFG_ADUE >> 32);
-#else
-		csr_set(CSR_MENVCFG, ENVCFG_ADUE);
-#endif
-	else if (value == 0)
-#if __riscv_xlen == 32
-		csr_clear(CSR_MENVCFGH, ENVCFG_ADUE >> 32);
-#else
-		csr_clear(CSR_MENVCFG, ENVCFG_ADUE);
-#endif
-	else
-		return SBI_EINVAL;
-
-	return SBI_OK;
+	return fwft_menvcfg_set_bit(value, ENVCFG_ADUE_SHIFT);
 }
 
 static int fwft_get_adue(struct fwft_config *conf, unsigned long *value)
 {
-	unsigned long cfg;
+	return fwft_menvcfg_read_bit(value, ENVCFG_ADUE_SHIFT);
+}
 
-#if __riscv_xlen == 32
-	cfg = csr_read(CSR_MENVCFGH) & (ENVCFG_ADUE >> 32);
-#else
-	cfg = csr_read(CSR_MENVCFG) & ENVCFG_ADUE;
-#endif
-	*value = cfg != 0;
+static int fwft_lpad_supported(struct fwft_config *conf)
+{
+	if (!sbi_hart_has_extension(sbi_scratch_thishart_ptr(),
+				    SBI_HART_EXT_ZICFILP))
+		return SBI_ENOTSUPP;
 
 	return SBI_OK;
 }
+
+static int fwft_enable_lpad(struct fwft_config *conf, unsigned long value)
+{
+	return fwft_menvcfg_set_bit(value, ENVCFG_LPE_SHIFT);
+}
+
+static int fwft_get_lpad(struct fwft_config *conf, unsigned long *value)
+{
+	return fwft_menvcfg_read_bit(value, ENVCFG_LPE_SHIFT);
+}
+
+static int fwft_sstack_supported(struct fwft_config *conf)
+{
+	if (!sbi_hart_has_extension(sbi_scratch_thishart_ptr(),
+				    SBI_HART_EXT_ZICFISS))
+		return SBI_ENOTSUPP;
+
+	return SBI_OK;
+}
+
+static int fwft_enable_sstack(struct fwft_config *conf, unsigned long value)
+{
+	return fwft_menvcfg_set_bit(value, ENVCFG_SSE_SHIFT);
+}
+
+static int fwft_get_sstack(struct fwft_config *conf, unsigned long *value)
+{
+	return fwft_menvcfg_read_bit(value, ENVCFG_SSE_SHIFT);
+}
+
+#if __riscv_xlen > 32
+static int fwft_pmlen_supported(struct fwft_config *conf)
+{
+	if (!sbi_hart_has_extension(sbi_scratch_thishart_ptr(),
+				    SBI_HART_EXT_SMNPM))
+		return SBI_ENOTSUPP;
+
+	return SBI_OK;
+}
+
+static bool fwft_try_to_set_pmm(unsigned long pmm)
+{
+	csr_set(CSR_MENVCFG, pmm);
+	return (csr_read(CSR_MENVCFG) & ENVCFG_PMM) == pmm;
+}
+
+static int fwft_set_pmlen(struct fwft_config *conf, unsigned long value)
+{
+	unsigned long prev;
+
+	if (value > 16)
+		return SBI_EINVAL;
+
+	prev = csr_read_clear(CSR_MENVCFG, ENVCFG_PMM);
+	if (value == 0)
+		return SBI_OK;
+	if (value <= 7) {
+		if (fwft_try_to_set_pmm(ENVCFG_PMM_PMLEN_7))
+			return SBI_OK;
+		csr_clear(CSR_MENVCFG, ENVCFG_PMM);
+	}
+	if (fwft_try_to_set_pmm(ENVCFG_PMM_PMLEN_16))
+		return SBI_OK;
+	csr_write(CSR_MENVCFG, prev);
+
+	return SBI_EINVAL;
+}
+
+static int fwft_get_pmlen(struct fwft_config *conf, unsigned long *value)
+{
+	switch (csr_read(CSR_MENVCFG) & ENVCFG_PMM) {
+	case ENVCFG_PMM_PMLEN_0:
+		*value = 0;
+		break;
+	case ENVCFG_PMM_PMLEN_7:
+		*value = 7;
+		break;
+	case ENVCFG_PMM_PMLEN_16:
+		*value = 16;
+		break;
+	default:
+		return SBI_EFAIL;
+	}
+
+	return SBI_OK;
+}
+#endif
 
 static struct fwft_config* get_feature_config(enum sbi_fwft_feature_t feature)
 {
@@ -183,6 +309,18 @@ static int fwft_get_feature(enum sbi_fwft_feature_t feature,
 	*conf = tconf;
 
 	return SBI_SUCCESS;
+}
+
+static void fwft_clear_config_lock(enum sbi_fwft_feature_t feature)
+{
+	int ret;
+	struct fwft_config *conf;
+
+	ret = fwft_get_feature(feature, &conf);
+	if (ret)
+		return;
+
+	conf->flags &= ~SBI_FWFT_SET_FLAG_LOCK;
 }
 
 int sbi_fwft_set(enum sbi_fwft_feature_t feature, unsigned long value,
@@ -231,11 +369,37 @@ static const struct fwft_feature features[] =
 		.get = fwft_get_misaligned_delegation,
 	},
 	{
+		.id = SBI_FWFT_LANDING_PAD,
+		.supported = fwft_lpad_supported,
+		.set = fwft_enable_lpad,
+		.get = fwft_get_lpad,
+	},
+	{
+		.id = SBI_FWFT_SHADOW_STACK,
+		.supported = fwft_sstack_supported,
+		.set = fwft_enable_sstack,
+		.get = fwft_get_sstack,
+	},
+	{
+		.id = SBI_FWFT_DOUBLE_TRAP,
+		.supported = fwft_double_trap_supported,
+		.set = fwft_set_double_trap,
+		.get = fwft_get_double_trap,
+	},
+	{
 		.id = SBI_FWFT_PTE_AD_HW_UPDATING,
 		.supported = fwft_adue_supported,
 		.set = fwft_set_adue,
 		.get = fwft_get_adue,
 	},
+#if __riscv_xlen > 32
+	{
+		.id = SBI_FWFT_POINTER_MASKING_PMLEN,
+		.supported = fwft_pmlen_supported,
+		.set = fwft_set_pmlen,
+		.get = fwft_get_pmlen,
+	},
+#endif
 };
 
 int sbi_fwft_init(struct sbi_scratch *scratch, bool cold_boot)
@@ -261,6 +425,9 @@ int sbi_fwft_init(struct sbi_scratch *scratch, bool cold_boot)
 
 		fwft_set_hart_state_ptr(scratch, fhs);
 	}
+
+	for (i = 0; i < array_size(features); i++)
+		fwft_clear_config_lock(features[i].id);
 
 	return 0;
 }

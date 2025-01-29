@@ -76,7 +76,7 @@ static int sg2042_mcu_reset_check_board(struct i2c_adapter *adap, uint32_t reg)
 	return 0;
 }
 
-static int sg2042_mcu_reset_init(void *fdt, int nodeoff,
+static int sg2042_mcu_reset_init(const void *fdt, int nodeoff,
 				 const struct fdt_match *match)
 {
 	int ret, i2c_bus;
@@ -108,7 +108,7 @@ static const struct fdt_match sg2042_mcu_reset_match[] = {
 	{ },
 };
 
-struct fdt_reset fdt_reset_sg2042_mcu = {
+const struct fdt_driver fdt_reset_sg2042_mcu = {
 	.match_table = sg2042_mcu_reset_match,
 	.init = sg2042_mcu_reset_init,
 };

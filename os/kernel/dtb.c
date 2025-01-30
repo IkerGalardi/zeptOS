@@ -1,108 +1,276 @@
 #include "dtb.h"
 #include "types.h"
-#include "riscv.h"
-#include "defs.h"
-#include "sbi.h"
 
-extern int strncmp(const char *p, const char *q, uint n);
+#define DTB_MAGIC_LE DTB_BYTESWAP32(0xd00dfeed)
 
-#define BYTESWAP32(num) ((((num)>>24)&0xff) | (((num)<<8)&0xff0000) | \
-                        (((num)>>8)&0xff00) | (((num)<<24)&0xff000000))
+#define NULL ((void *)0)
 
-#define BYTESWAP64(num) (BYTESWAP32(num) << 32 | BYTESWAP32((num) >> 32))
+int strncmp(const char*, const char*, uint);
 
-#define FDT_BEGIN_NODE BYTESWAP32((uint32)0x1)
-#define FDT_END_NODE   BYTESWAP32((uint32)0x2)
-#define FDT_PROP       BYTESWAP32((uint32)0x3)
-#define FDT_NOP        BYTESWAP32((uint32)0x4)
-#define FDT_END        BYTESWAP32((uint32)0x9)
-
-uint64 ram_start = 0;
-uint64 ram_size = 0;
-
-struct fdtheader {
-    uint32 magic;
-    uint32 totalsize;
-    uint32 off_dt_struct;
-    uint32 off_dt_strings;
-    uint32 off_mem_rsvmap;
-    uint32 version;
-    uint32 last_comp_version;
-    uint32 boot_cpuid_phys;
-    uint32 size_dt_strings;
-    uint32 size_dt_struct;
-} __attribute__((packed));
-
-struct fdtreserved {
-    uint64 address;
-    uint64 size;
-};
-
-static void memory_property(char *name, uint32 *property)
+int strcmp_nodename(const char *pathpart, const char *nodename)
 {
-    if (strncmp(name, "reg", 4) == 0) {
-        uint64 *property64 = (uint64 *)property;
-
-        /// NOTE: documentation of the device tree file tells us that this
-        ///       should be a pair array (first element being the start and the
-        ///       second the size). Instead, Qemu's device tree gives us garbage
-        ///       as the first value and then the start/size pair.
-        ram_start = BYTESWAP64(*(property64 + 1));
-        ram_size = BYTESWAP64(*(property64 + 2));
-    }
-}
-
-void dtbparse(void *fdt)
-{
-    struct fdtheader *header = fdt;
-
-    if (header->magic != BYTESWAP32(0xd00dfeed)) {
-        printf("kernel(%d): wrong device tree magic number %x\n", cpuid(),
-               BYTESWAP32(header->magic));
-        return;
-    }
-
-    struct fdtreserved *reserved = (struct fdtreserved *)((char *)fdt +
-                                   BYTESWAP32(header->off_mem_rsvmap));
-    while (!(reserved->address == 0 && reserved->size == 0)) {
-        printf("kernel(%d): reserved zone at %lx with size %ld", cpuid(),
-               reserved->address, reserved->size);
-
-        reserved++;
-    }
-
-    enum {
-        DEVICE_ROOT,
-        DEVICE_MEMORY,
-        DEVICE_UNKNOWN
-    } node = DEVICE_ROOT;
-
-    uint32 *property = (uint32 *)((char *)fdt + BYTESWAP32(header->off_dt_struct));
-    char *strings = (char *)fdt + BYTESWAP32(header->off_dt_strings);
-    while (*property != FDT_END) {
-        if (*property == FDT_BEGIN_NODE) {
-            property++;
-
-            if (node == DEVICE_ROOT && strncmp((char *)property, "memory", 6) == 0) {
-                node = DEVICE_MEMORY;
-            }
-        } else if (*property == FDT_PROP) {
-            uint32 len = BYTESWAP32(*(property + 1));
-            uint32 str_off = BYTESWAP32(*(property + 2));
-
-            if (node == DEVICE_MEMORY) {
-                memory_property(strings + str_off, property+1);
-            }
-
-            property += len / sizeof(uint32) + 2;
-        } else if (*property == FDT_END_NODE) {
-            if (node == DEVICE_MEMORY) {
-                node = DEVICE_ROOT;
-            }
-        } else if (*property == FDT_NOP) {
-            property++;
+    while (!(*pathpart == '\0' || *nodename == '\0')) {
+        if (*pathpart != *nodename) {
+            break;
         }
 
-        property++;
+        pathpart++;
+        nodename++;
     }
+
+    if (*pathpart == '\0' && *nodename == '\0') {
+        return 0;
+    }
+
+    if (*pathpart == '\0' && *nodename == '@') {
+        return 0;
+    }
+
+    return 1;
+}
+
+uint32 *next_token(uint32 *token)
+{
+    if (*token == DTB_BEGIN_NODE) {
+        token++;
+
+        char *tokenchar = (char *)token;
+        while (*tokenchar != '\0') {
+            tokenchar++;
+        }
+
+        if ((uint64_t)tokenchar % 4 != 0) {
+            tokenchar += 4 - (uint64_t)tokenchar % 4;
+        }
+        token = (uint32_t *)tokenchar;
+
+        while (*token == 0) {
+            token++;
+        }
+    } else if (*token == DTB_END_NODE) {
+        token++;
+    } else if (*token == DTB_PROP) {
+        uint32 len = DTB_BYTESWAP32(*(token + 1));
+        if (len % sizeof(uint32) == 0) {
+            token += len / sizeof(uint32) + 3;
+        } else {
+            uint32 len_rounding = 4 - (len % 4);
+            token += (len + len_rounding) / sizeof(uint32) + 3;
+        }
+    } else if (*token == DTB_NOP) {
+        token++;
+    }
+
+    return token;
+}
+
+
+dtb *dtb_fromptr(void *ptr)
+{
+    dtb *devicetree = (dtb *)ptr;
+
+    if (devicetree == NULL) {
+        return NULL;
+    }
+
+    if (devicetree->magic != DTB_MAGIC_LE) {
+        return NULL;
+    }
+
+    return devicetree;
+}
+
+dtb_node dtb_find(dtb *devicetree, const char *path)
+{
+    uint32 *struct_block = (uint32 *)((uint8_t *)devicetree + DTB_BYTESWAP32(devicetree->off_dt_struct));
+
+    // The first block from the struct node should be a DTB_BEGIN_NODE as it should be refering to
+    // the root node of the device tree. If that is not the case we return null to signal an error.
+    if (*struct_block != DTB_BEGIN_NODE) {
+        return NULL;
+    }
+
+    if (strncmp(path, "/", 2) == 0) {
+        return (dtb_node)struct_block;
+    }
+
+    // Always needs to be an absolute path.
+    if (path[0] != '/') {
+        return NULL;
+    }
+
+    char parsed_path[10][256] = {0};
+    uint64 parsed_i = 0;
+    uint64 path_depth = 0;
+    int i = 1;
+    while (path[i] != '\0') {
+        if (path[i] == '/') {
+            path_depth++;
+            parsed_i = 0;
+        } else {
+            parsed_path[path_depth][parsed_i] = path[i];
+            parsed_i++;
+        }
+
+        i++;
+    }
+
+    uint32 *token = struct_block + 1;
+    uint32 parsing_depth = 0;
+    while (*token != DTB_END) {
+        if (*token == DTB_BEGIN_NODE) {
+            token++;
+            if (strcmp_nodename(parsed_path[parsing_depth], (char *)token) == 0) {
+                if (parsing_depth == path_depth) {
+                    return (dtb_node)token - 1;
+                }
+
+                parsing_depth++;
+            } else {
+                token = dtb_next_sibling(token - 1);
+                if (token == NULL) {
+                    return NULL;
+                }
+                token--;
+            }
+        } else if (*token == DTB_PROP) {
+            uint32 len = DTB_BYTESWAP32(*(token + 1));
+            token += len / sizeof(uint32) + 2;
+        }
+
+        token++;
+    }
+
+    return NULL;
+}
+
+char *dtb_property_name(dtb *devicetree, dtb_node node)
+{
+    char *strings = (char *)devicetree + DTB_BYTESWAP32(devicetree->off_dt_strings);
+    uint32_t stroff = DTB_BYTESWAP32(*(node + 2));
+    return strings + stroff;
+}
+
+uint32_t dtb_property_uint32(dtb_property prop)
+{
+    return DTB_BYTESWAP32(*(prop + 3));
+}
+
+uint64_t dtb_property_uint64(dtb_property prop)
+{
+    return DTB_BYTESWAP64(*(uint64_t *)(prop + 3));
+}
+
+char *dtb_property_string(dtb_property prop)
+{
+    return (char *)(prop + 3);
+}
+
+char *dtb_property_array(dtb_property prop)
+{
+    return (void *)(prop + 3);
+}
+
+dtb_property dtb_first_property(dtb_node node)
+{
+    uint32 *token = next_token(node);
+    while (*token != DTB_PROP) {
+        if (*token == DTB_END || *token == DTB_BEGIN_NODE || *token == DTB_END_NODE) {
+            return NULL;
+        }
+
+        token = next_token(token);
+    }
+
+    return token;
+}
+
+dtb_property dtb_next_property(dtb_property prop)
+{
+    uint32 *token = next_token(prop);
+    while (*token != DTB_PROP) {
+        if (*token == DTB_END || *token == DTB_BEGIN_NODE || *token == DTB_END_NODE) {
+            return NULL;
+        }
+
+        token = next_token(token);
+    }
+
+    return token;
+}
+
+dtb_node dtb_first_child(dtb_node node)
+{
+    uint32 *token = next_token(node);
+    while (*token != DTB_BEGIN_NODE) {
+        if (*token == DTB_END || *token == DTB_END_NODE) {
+            return NULL;
+        }
+
+        token = next_token(token);
+    }
+    return token;
+}
+
+dtb_node dtb_next_sibling(dtb_node node)
+{
+    int depth = 0;
+    while (*node != DTB_END) {
+        if (*node == DTB_BEGIN_NODE) {
+            node++;
+            depth++;
+        } else if (*node == DTB_PROP) {
+            uint32 len = DTB_BYTESWAP32(*(node + 1));
+            int len_rounding = 4 - len % 4;
+            if (len % 4 == 0) {
+                node += len / sizeof(uint32) + 2;
+            } else {
+                node += (len + len_rounding) / sizeof(uint32) + 2;
+            }
+        } else if (*node == DTB_END_NODE) {
+            depth--;
+            if (depth <= 0) {
+                node++;
+                break;
+            }
+        }
+        node++;
+    }
+
+    while (*node != DTB_BEGIN_NODE) {
+        if (*node == DTB_END) {
+            break;
+        }
+
+        if (*node == DTB_END_NODE) {
+            return NULL;
+        }
+
+        node++;
+    }
+
+    return node;
+}
+
+dtb_rsvmap_entry *dtb_first_rsvmap_entry(dtb *devicetree)
+{
+    uint8_t *dtb_ptr = (uint8_t *)devicetree;
+    dtb_rsvmap_entry *entry = (dtb_rsvmap_entry *)(dtb_ptr + DTB_BYTESWAP32(devicetree->off_mem_rsvmap));
+
+    if (entry->address == 0 && entry->size == 0) {
+        return NULL;
+    }
+
+    return entry;
+}
+
+dtb_rsvmap_entry *dtb_next_rsvmap_entry(dtb_rsvmap_entry *entry)
+{
+    entry++;
+
+    if (entry->address == 0 && entry->size == 0) {
+        return NULL;
+    }
+
+    return entry;
 }

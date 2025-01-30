@@ -80,7 +80,7 @@ static struct sbi_system_reset_device atcwdt200_reset = {
 	.system_reset	    = ae350_system_reset,
 };
 
-static int atcwdt200_reset_init(void *fdt, int nodeoff,
+static int atcwdt200_reset_init(const void *fdt, int nodeoff,
 				const struct fdt_match *match)
 {
 	uint64_t reg_addr;
@@ -111,7 +111,7 @@ static const struct fdt_match atcwdt200_reset_match[] = {
 	{},
 };
 
-struct fdt_reset fdt_reset_atcwdt200 = {
+const struct fdt_driver fdt_reset_atcwdt200 = {
 	.match_table = atcwdt200_reset_match,
 	.init	     = atcwdt200_reset_init,
 };

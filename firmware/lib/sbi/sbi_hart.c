@@ -117,6 +117,9 @@ static void mstatus_init(struct sbi_scratch *scratch)
 		menvcfg_val |= ((uint64_t)csr_read(CSR_MENVCFGH)) << 32;
 #endif
 
+		/* Disable double trap by default */
+		menvcfg_val &= ~ENVCFG_DTE;
+
 #define __set_menvcfg_ext(__ext, __bits)				\
 		if (sbi_hart_has_extension(scratch, __ext))		\
 			menvcfg_val |= __bits;
@@ -207,7 +210,8 @@ static int delegate_traps(struct sbi_scratch *scratch)
 	if (sbi_platform_has_mfaults_delegation(plat))
 		exceptions |= (1U << CAUSE_FETCH_PAGE_FAULT) |
 			      (1U << CAUSE_LOAD_PAGE_FAULT) |
-			      (1U << CAUSE_STORE_PAGE_FAULT);
+			      (1U << CAUSE_STORE_PAGE_FAULT) |
+			      (1U << CAUSE_SW_CHECK_EXCP);
 
 	/*
 	 * If hypervisor extension available then we only handle hypervisor
@@ -680,6 +684,10 @@ const struct sbi_hart_ext_data sbi_hart_ext[] = {
 	__SBI_HART_EXT_DATA(ssccfg, SBI_HART_EXT_SSCCFG),
 	__SBI_HART_EXT_DATA(svade, SBI_HART_EXT_SVADE),
 	__SBI_HART_EXT_DATA(svadu, SBI_HART_EXT_SVADU),
+	__SBI_HART_EXT_DATA(smnpm, SBI_HART_EXT_SMNPM),
+	__SBI_HART_EXT_DATA(zicfilp, SBI_HART_EXT_ZICFILP),
+	__SBI_HART_EXT_DATA(zicfiss, SBI_HART_EXT_ZICFISS),
+	__SBI_HART_EXT_DATA(ssdbltrp, SBI_HART_EXT_SSDBLTRP),
 };
 
 _Static_assert(SBI_HART_EXT_MAX == array_size(sbi_hart_ext),
@@ -723,13 +731,13 @@ static unsigned long hart_pmp_get_allowed_addr(void)
 	unsigned long val = 0;
 	struct sbi_trap_info trap = {0};
 
-	csr_write_allowed(CSR_PMPCFG0, (ulong)&trap, 0);
+	csr_write_allowed(CSR_PMPCFG0, &trap, 0);
 	if (trap.cause)
 		return 0;
 
-	csr_write_allowed(CSR_PMPADDR0, (ulong)&trap, PMP_ADDR_MASK);
+	csr_write_allowed(CSR_PMPADDR0, &trap, PMP_ADDR_MASK);
 	if (!trap.cause) {
-		val = csr_read_allowed(CSR_PMPADDR0, (ulong)&trap);
+		val = csr_read_allowed(CSR_PMPADDR0, &trap);
 		if (trap.cause)
 			val = 0;
 	}
@@ -747,17 +755,17 @@ static int hart_mhpm_get_allowed_bits(void)
 	 * It is assumed that platforms will implement same number of bits for
 	 * all the performance counters including mcycle/minstret.
 	 */
-	csr_write_allowed(CSR_MHPMCOUNTER3, (ulong)&trap, val);
+	csr_write_allowed(CSR_MHPMCOUNTER3, &trap, val);
 	if (!trap.cause) {
-		val = csr_read_allowed(CSR_MHPMCOUNTER3, (ulong)&trap);
+		val = csr_read_allowed(CSR_MHPMCOUNTER3, &trap);
 		if (trap.cause)
 			return 0;
 	}
 	num_bits = sbi_fls(val) + 1;
 #if __riscv_xlen == 32
-	csr_write_allowed(CSR_MHPMCOUNTER3H, (ulong)&trap, val);
+	csr_write_allowed(CSR_MHPMCOUNTER3H, &trap, val);
 	if (!trap.cause) {
-		val = csr_read_allowed(CSR_MHPMCOUNTER3H, (ulong)&trap);
+		val = csr_read_allowed(CSR_MHPMCOUNTER3H, &trap);
 		if (trap.cause)
 			return num_bits;
 	}
@@ -788,9 +796,9 @@ static int hart_detect_features(struct sbi_scratch *scratch)
 	hfeatures->priv_version = SBI_HART_PRIV_VER_UNKNOWN;
 
 #define __check_hpm_csr(__csr, __mask) 					  \
-	oldval = csr_read_allowed(__csr, (ulong)&trap);			  \
+	oldval = csr_read_allowed(__csr, &trap);			  \
 	if (!trap.cause) {						  \
-		csr_write_allowed(__csr, (ulong)&trap, 1UL);		  \
+		csr_write_allowed(__csr, &trap, 1UL);			  \
 		if (!trap.cause && csr_swap(__csr, oldval) == 1UL) {	  \
 			(hfeatures->__mask) |= 1 << (__csr - CSR_MCYCLE); \
 		}							  \
@@ -809,15 +817,15 @@ static int hart_detect_features(struct sbi_scratch *scratch)
 	__check_hpm_csr_8(__csr + 0, __mask) 			  \
 	__check_hpm_csr_8(__csr + 8, __mask)
 
-#define __check_csr(__csr, __rdonly, __wrval, __field, __skip)	\
-	oldval = csr_read_allowed(__csr, (ulong)&trap);			\
+#define __check_csr(__csr, __rdonly, __wrval, __field, __skip)		\
+	oldval = csr_read_allowed(__csr, &trap);			\
 	if (!trap.cause) {						\
 		if (__rdonly) {						\
 			(hfeatures->__field)++;				\
 		} else {						\
-			csr_write_allowed(__csr, (ulong)&trap, __wrval);\
+			csr_write_allowed(__csr, &trap, __wrval);	\
 			if (!trap.cause) {				\
-				if (csr_swap(__csr, oldval) == __wrval)	\
+				if ((csr_swap(__csr, oldval) & __wrval) == __wrval)	\
 					(hfeatures->__field)++;		\
 				else					\
 					goto __skip;			\
@@ -880,7 +888,7 @@ __pmp_skip:
 
 
 #define __check_priv(__csr, __base_priv, __priv)			\
-	val = csr_read_allowed(__csr, (ulong)&trap);			\
+	val = csr_read_allowed(__csr, &trap);				\
 	if (!trap.cause && (hfeatures->priv_version >= __base_priv)) {	\
 		hfeatures->priv_version = __priv;			\
 	}
@@ -899,7 +907,7 @@ __pmp_skip:
 
 #define __check_ext_csr(__base_priv, __csr, __ext)			\
 	if (hfeatures->priv_version >= __base_priv) {			\
-		csr_read_allowed(__csr, (ulong)&trap);			\
+		csr_read_allowed(__csr, &trap);				\
 		if (!trap.cause)					\
 			__sbi_hart_update_extension(hfeatures,		\
 						    __ext, true);	\

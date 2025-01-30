@@ -8,7 +8,7 @@
 #
 
 libsbiutils-objs-$(CONFIG_FDT_RESET) += reset/fdt_reset.o
-libsbiutils-objs-$(CONFIG_FDT_RESET) += reset/fdt_reset_drivers.o
+libsbiutils-objs-$(CONFIG_FDT_RESET) += reset/fdt_reset_drivers.carray.o
 
 carray-fdt_reset_drivers-$(CONFIG_FDT_RESET_ATCWDT200) += fdt_reset_atcwdt200
 libsbiutils-objs-$(CONFIG_FDT_RESET_ATCWDT200) += reset/fdt_reset_atcwdt200.o
@@ -29,3 +29,6 @@ libsbiutils-objs-$(CONFIG_FDT_RESET_SUNXI_WDT) += reset/fdt_reset_sunxi_wdt.o
 carray-fdt_reset_drivers-$(CONFIG_FDT_RESET_SYSCON) += fdt_syscon_poweroff
 carray-fdt_reset_drivers-$(CONFIG_FDT_RESET_SYSCON) += fdt_syscon_reboot
 libsbiutils-objs-$(CONFIG_FDT_RESET_SYSCON) += reset/fdt_reset_syscon.o
+
+carray-fdt_reset_drivers-$(CONFIG_FDT_RESET_RPMI) += fdt_reset_rpmi
+libsbiutils-objs-$(CONFIG_FDT_RESET_RPMI) += reset/fdt_reset_rpmi.o

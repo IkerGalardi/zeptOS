@@ -103,18 +103,26 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
 		      const struct sbi_trap_info *trap)
 {
 	ulong hstatus, vsstatus, prev_mode;
-#if __riscv_xlen == 32
-	bool prev_virt = (regs->mstatusH & MSTATUSH_MPV) ? true : false;
-#else
-	bool prev_virt = (regs->mstatus & MSTATUS_MPV) ? true : false;
-#endif
+	bool elp = false;
+	bool prev_virt = sbi_regs_from_virt(regs);
 	/* By default, we redirect to HS-mode */
 	bool next_virt = false;
 
 	/* Sanity check on previous mode */
-	prev_mode = (regs->mstatus & MSTATUS_MPP) >> MSTATUS_MPP_SHIFT;
+	prev_mode = sbi_mstatus_prev_mode(regs->mstatus);
 	if (prev_mode != PRV_S && prev_mode != PRV_U)
 		return SBI_ENOTSUPP;
+
+	/* If hart support for zicfilp, clear MPELP because redirecting to VS or (H)S */
+	if (sbi_hart_has_extension(sbi_scratch_thishart_ptr(), SBI_HART_EXT_ZICFILP)) {
+#if __riscv_xlen == 32
+		elp = regs->mstatusH & MSTATUSH_MPELP;
+		regs->mstatusH &= ~MSTATUSH_MPELP;
+#else
+		elp = regs->mstatus & MSTATUS_MPELP;
+		regs->mstatus &= ~MSTATUS_MPELP;
+#endif
+	}
 
 	/* If exceptions came from VS/VU-mode, redirect to VS-mode if
 	 * delegated in hedeleg
@@ -169,6 +177,10 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
 		/* Get VS-mode SSTATUS CSR */
 		vsstatus = csr_read(CSR_VSSTATUS);
 
+		/* If elp was set, set it back in vsstatus */
+		if (elp)
+			vsstatus |= MSTATUS_SPELP;
+
 		/* Set SPP for VS-mode */
 		vsstatus &= ~SSTATUS_SPP;
 		if (prev_mode == PRV_S)
@@ -209,6 +221,10 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
 
 		/* Clear SIE for S-mode */
 		regs->mstatus &= ~MSTATUS_SIE;
+
+		/* If elp was set, set it back in mstatus */
+		if (elp)
+			regs->mstatus |= MSTATUS_SPELP;
 	}
 
 	return 0;
@@ -334,6 +350,10 @@ struct sbi_trap_context *sbi_trap_handler(struct sbi_trap_context *tcntx)
 		rc  = sbi_store_access_handler(tcntx);
 		msg = "store fault handler failed";
 		break;
+	case CAUSE_DOUBLE_TRAP:
+		rc  = sbi_double_trap_handler(tcntx);
+		msg = "double trap handler failed";
+		break;
 	default:
 		/* If the trap came from S or U mode, redirect it there */
 		msg = "trap redirect failed";
@@ -345,7 +365,7 @@ trap_done:
 	if (rc)
 		sbi_trap_error(msg, rc, tcntx);
 
-	if (((regs->mstatus & MSTATUS_MPP) >> MSTATUS_MPP_SHIFT) != PRV_M)
+	if (sbi_mstatus_prev_mode(regs->mstatus) != PRV_M)
 		sbi_sse_process_pending_events(regs);
 
 	sbi_trap_set_context(scratch, tcntx->prev_context);

@@ -8,6 +8,36 @@
 
 extern void _entry();
 
+static uint64 ram_start = 0;
+static uint64 ram_size = 0;
+
+static void dtbparse(void *fdt)
+{
+    dtb *devicetree = dtb_fromptr(fdt);
+    if (devicetree == 0) {
+        panic("dtbparse");
+    }
+
+    printf("kernel(%d): parsing device tree:\n", cpuid());
+
+    dtb_node memory_node = dtb_find(devicetree, "/memory");
+    //uint32 address_cells = DTB_ADDRESS_CELLS_DEFAULT;
+    //uint32 size_cells = DTB_SIZE_CELLS_DEFAULT;
+    dtb_foreach_property(memory_node, prop) {
+        char *propname = dtb_property_name(devicetree, prop);
+        if (strncmp("#address-cells", propname, 15) == 0) {
+            // address_cells = dtb_property_uint32(prop);
+        } else if (strncmp("#size-cells", propname, 12) == 0) {
+            // size_cells = dtb_property_uint32(prop);
+        } else if (strncmp("reg", propname, 4) == 0) {
+            uint64 *property = (uint64 *)dtb_property_array(prop);
+            ram_start = DTB_BYTESWAP64(property[0]);
+            ram_size = DTB_BYTESWAP64(property[1]);
+            printf(" · Ram starts at 0x%lx with size 0x%lx\n", ram_start, ram_size);
+        }
+    }
+}
+
 // start() jumps here in supervisor mode on all CPUs.
 void
 main(void *fdt)

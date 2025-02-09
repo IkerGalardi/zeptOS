@@ -30,7 +30,8 @@ OBJS = \
   $K/plic.o \
   $K/virtio_disk.o \
   $K/sbi.o \
-  $K/dtb.o
+  $K/dtb.o \
+  $K/globals.o
 
 CC=riscv64-linux-gnu-gcc
 AS=riscv64-linux-gnu-as

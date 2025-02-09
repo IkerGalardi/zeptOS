@@ -1,6 +1,7 @@
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
+#include "globals.h"
 #include "riscv.h"
 #include "defs.h"
 #include "sbi.h"
@@ -18,7 +19,42 @@ static void dtbparse(void *fdt)
         panic("dtbparse");
     }
 
-    printf("kernel(%d): parsing device tree:\n", cpuid());
+    dtb_node chosen_node = dtb_find(devicetree, "/chosen");
+    if (chosen_node == 0) {
+        sbi_debug_console_write(16, "no /chosen node");
+        while(1);
+    }
+
+    dtb_node stdout_node = 0;
+    char *stdout_path = 0;
+    dtb_foreach_property(chosen_node, prop) {
+        char *propname = dtb_property_name(devicetree, prop);
+        if (strncmp("stdout-path", propname, 12) == 0) {
+            stdout_path = dtb_property_string(prop);
+            stdout_node = dtb_find(devicetree, stdout_path);
+        }
+    }
+    if (stdout_node == 0) {
+        sbi_debug_console_write(28, "no /chosen:stdout-path node");
+        while(1);
+    }
+
+    dtb_foreach_property(stdout_node, prop) {
+        char *propname = dtb_property_name(devicetree, prop);
+
+        if (strncmp("compatible", propname, 11) == 0) {
+            char *value = dtb_property_string(prop);
+            if (strncmp("ns16550a", value, 9) != 0) {
+                sbi_debug_console_write(17, "incompatible uart");
+                while(1);
+            }
+        } else if (strncmp("reg", propname, 4) == 0) {
+            uint64 *regs = (uint64 *)dtb_property_array(prop);
+            uart0 = DTB_BYTESWAP64(regs[0]);
+        } else if (strncmp("interrupts", propname, 11) == 0) {
+            uart0_irq = dtb_property_uint32(prop);
+        }
+    }
 
     dtb_node memory_node = dtb_find(devicetree, "/memory");
     //uint32 address_cells = DTB_ADDRESS_CELLS_DEFAULT;
@@ -33,9 +69,9 @@ static void dtbparse(void *fdt)
             uint64 *property = (uint64 *)dtb_property_array(prop);
             ram_start = DTB_BYTESWAP64(property[0]);
             ram_size = DTB_BYTESWAP64(property[1]);
-            printf(" · Ram starts at 0x%lx with size 0x%lx\n", ram_start, ram_size);
         }
     }
+
 }
 
 // start() jumps here in supervisor mode on all CPUs.
@@ -43,10 +79,11 @@ void
 main(void *fdt)
 {
     sbi_debug_console_write(20, "\nxv6 kernel booting\n");
+    dtbparse(fdt);
+
     printfinit();
     consoleinit();
     printf("kernel(%d): console initialized\n", cpuid());
-    dtbparse(fdt);
     kinit(ram_start, ram_size);            // physical page allocator
     printf("kernel(%d): physical page allocator initialized\n", cpuid());
     kvminit();          // create kernel page table

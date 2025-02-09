@@ -2,6 +2,7 @@
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
+#include "globals.h"
 #include "riscv.h"
 #include "spinlock.h"
 #include "proc.h"
@@ -187,7 +188,7 @@ devintr()
         // irq indicates which device interrupted.
         int irq = plic_claim();
 
-        if(irq == UART0_IRQ){
+        if(irq == uart0_irq){
             uartintr();
         } else if(irq == VIRTIO0_IRQ){
             virtio_disk_intr();

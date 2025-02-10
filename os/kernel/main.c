@@ -88,6 +88,8 @@ static void dtbparse(void *fdt)
 
         if (strncmp("sifive,plic-1.0.0", compatible, 18) == 0) {
             plic = reg;
+        } else if (strncmp("sifive,clint0", compatible, 14) == 0) {
+            clint = reg;
         }
     }
 }

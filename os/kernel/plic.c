@@ -13,8 +13,8 @@ void
 plicinit(void)
 {
     // set desired IRQ priorities non-zero (otherwise disabled).
-    *(uint32*)(PLIC + uart0_irq*4) = 1;
-    *(uint32*)(PLIC + VIRTIO0_IRQ*4) = 1;
+    *(uint32*)(plic + uart0_irq*4) = 1;
+    *(uint32*)(plic + VIRTIO0_IRQ*4) = 1;
 }
 
 void

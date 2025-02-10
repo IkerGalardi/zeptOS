@@ -10,6 +10,7 @@
 #include "defs.h"
 #include "param.h"
 #include "memlayout.h"
+#include "globals.h"
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "fs.h"
@@ -17,7 +18,7 @@
 #include "virtio.h"
 
 // the address of virtio mmio register r.
-#define R(r) ((volatile uint32 *)(VIRTIO0 + (r)))
+#define R(r) ((volatile uint32 *)(virtio0 + (r)))
 
 static struct disk {
     // a set (not a ring) of DMA descriptors, with which the
@@ -53,10 +54,22 @@ static struct disk {
     // disk command headers.
     // one-for-one with descriptors, for convenience.
     struct virtio_blk_req ops[NUM];
-    
+
     struct spinlock vdisk_lock;
-    
+
 } disk;
+
+int
+virtio_disk_probe(void) {
+    if(*R(VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976 ||
+         *R(VIRTIO_MMIO_VERSION) != 2 ||
+         *R(VIRTIO_MMIO_DEVICE_ID) != 2 ||
+         *R(VIRTIO_MMIO_VENDOR_ID) != 0x554d4551){
+        return 1;
+    } else {
+        return 0;
+    }
+}
 
 void
 virtio_disk_init(void)

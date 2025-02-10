@@ -181,6 +181,7 @@ int             plic_claim(void);
 void            plic_complete(int);
 
 // virtio_disk.c
+int             virtio_disk_probe(void);
 void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);

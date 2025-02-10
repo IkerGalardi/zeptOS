@@ -72,6 +72,24 @@ static void dtbparse(void *fdt)
         }
     }
 
+    dtb_node soc_node = dtb_find(devicetree, "/soc");
+    dtb_foreach_child(soc_node, dev_node) {
+        char *compatible = 0;
+        uint64 reg = 0;
+        dtb_foreach_property(dev_node, prop) {
+            char *propname = dtb_property_name(devicetree, prop);
+
+            if (strncmp("compatible", propname, 11) == 0) {
+                compatible = dtb_property_string(prop);
+            } else if (strncmp("reg", propname, 4) == 0) {
+                reg = dtb_property_uint64(prop);
+            }
+        }
+
+        if (strncmp("sifive,plic-1.0.0", compatible, 18) == 0) {
+            plic = reg;
+        }
+    }
 }
 
 // start() jumps here in supervisor mode on all CPUs.

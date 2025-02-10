@@ -5,3 +5,6 @@ uint64 uart0_irq = 0;
 
 uint64 plic = 0;
 uint64 clint = 0;
+
+uint64 virtio0 = 0;
+uint64 virtio0_irq = 0;

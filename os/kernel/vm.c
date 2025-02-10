@@ -29,7 +29,7 @@ kvmmake(void)
     kvmmap(kpgtbl, uart0, uart0, PGSIZE, PTE_R | PTE_W);
 
     // virtio mmio disk interface
-    kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+    kvmmap(kpgtbl, virtio0, virtio0, PGSIZE, PTE_R | PTE_W);
 
     // PLIC
     kvmmap(kpgtbl, plic, plic, 0x400000, PTE_R | PTE_W);

@@ -72,10 +72,12 @@ static void dtbparse(void *fdt)
         }
     }
 
+    int found_virtio_disk = 0;
     dtb_node soc_node = dtb_find(devicetree, "/soc");
     dtb_foreach_child(soc_node, dev_node) {
         char *compatible = 0;
         uint64 reg = 0;
+        uint64 irq = 0;
         dtb_foreach_property(dev_node, prop) {
             char *propname = dtb_property_name(devicetree, prop);
 
@@ -83,6 +85,8 @@ static void dtbparse(void *fdt)
                 compatible = dtb_property_string(prop);
             } else if (strncmp("reg", propname, 4) == 0) {
                 reg = dtb_property_uint64(prop);
+            } else if (strncmp("interrupts", propname, 11) == 0) {
+                irq = dtb_property_uint32(prop);
             }
         }
 
@@ -90,7 +94,16 @@ static void dtbparse(void *fdt)
             plic = reg;
         } else if (strncmp("sifive,clint0", compatible, 14) == 0) {
             clint = reg;
+        } else if (strncmp("virtio,mmio", compatible, 12) == 0) {
+            virtio0 = reg;
+            virtio0_irq = irq;
+            if (found_virtio_disk == 0 && virtio_disk_probe() == 0) {
+                found_virtio_disk = 1;
+            }
         }
+    }
+    if (found_virtio_disk == 0) {
+        panic("virtio disk not found");
     }
 }
 

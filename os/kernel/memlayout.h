@@ -17,10 +17,6 @@
 // end -- start of kernel page allocation area
 // PHYSTOP -- end RAM used by the kernel
 
-// virtio mmio interface
-#define VIRTIO0 0x10001000
-#define VIRTIO0_IRQ 1
-
 // core local interruptor (CLINT), which contains the timer.
 #define CLINT_MTIMECMP(hartid) (clint + 0x4000 + 8*(hartid))
 #define CLINT_MTIME (clint + 0xBFF8) // cycles since boot.

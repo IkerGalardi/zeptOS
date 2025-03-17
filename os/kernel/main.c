@@ -1,6 +1,7 @@
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
+#include "globals.h"
 #include "riscv.h"
 #include "defs.h"
 #include "sbi.h"
@@ -8,15 +9,114 @@
 
 extern void _entry();
 
+static uint64 ram_start = 0;
+static uint64 ram_size = 0;
+
+static void dtbparse(void *fdt)
+{
+    dtb *devicetree = dtb_fromptr(fdt);
+    if (devicetree == 0) {
+        panic("dtbparse");
+    }
+
+    dtb_node chosen_node = dtb_find(devicetree, "/chosen");
+    if (chosen_node == 0) {
+        sbi_debug_console_write(16, "no /chosen node");
+        while(1);
+    }
+
+    dtb_node stdout_node = 0;
+    char *stdout_path = 0;
+    dtb_foreach_property(chosen_node, prop) {
+        char *propname = dtb_property_name(devicetree, prop);
+        if (strncmp("stdout-path", propname, 12) == 0) {
+            stdout_path = dtb_property_string(prop);
+            stdout_node = dtb_find(devicetree, stdout_path);
+        }
+    }
+    if (stdout_node == 0) {
+        sbi_debug_console_write(28, "no /chosen:stdout-path node");
+        while(1);
+    }
+
+    dtb_foreach_property(stdout_node, prop) {
+        char *propname = dtb_property_name(devicetree, prop);
+
+        if (strncmp("compatible", propname, 11) == 0) {
+            char *value = dtb_property_string(prop);
+            if (strncmp("ns16550a", value, 9) != 0) {
+                sbi_debug_console_write(17, "incompatible uart");
+                while(1);
+            }
+        } else if (strncmp("reg", propname, 4) == 0) {
+            uint64 *regs = (uint64 *)dtb_property_array(prop);
+            uart0 = DTB_BYTESWAP64(regs[0]);
+        } else if (strncmp("interrupts", propname, 11) == 0) {
+            uart0_irq = dtb_property_uint32(prop);
+        }
+    }
+
+    dtb_node memory_node = dtb_find(devicetree, "/memory");
+    //uint32 address_cells = DTB_ADDRESS_CELLS_DEFAULT;
+    //uint32 size_cells = DTB_SIZE_CELLS_DEFAULT;
+    dtb_foreach_property(memory_node, prop) {
+        char *propname = dtb_property_name(devicetree, prop);
+        if (strncmp("#address-cells", propname, 15) == 0) {
+            // address_cells = dtb_property_uint32(prop);
+        } else if (strncmp("#size-cells", propname, 12) == 0) {
+            // size_cells = dtb_property_uint32(prop);
+        } else if (strncmp("reg", propname, 4) == 0) {
+            uint64 *property = (uint64 *)dtb_property_array(prop);
+            ram_start = DTB_BYTESWAP64(property[0]);
+            ram_size = DTB_BYTESWAP64(property[1]);
+        }
+    }
+
+    int found_virtio_disk = 0;
+    dtb_node soc_node = dtb_find(devicetree, "/soc");
+    dtb_foreach_child(soc_node, dev_node) {
+        char *compatible = 0;
+        uint64 reg = 0;
+        uint64 irq = 0;
+        dtb_foreach_property(dev_node, prop) {
+            char *propname = dtb_property_name(devicetree, prop);
+
+            if (strncmp("compatible", propname, 11) == 0) {
+                compatible = dtb_property_string(prop);
+            } else if (strncmp("reg", propname, 4) == 0) {
+                reg = dtb_property_uint64(prop);
+            } else if (strncmp("interrupts", propname, 11) == 0) {
+                irq = dtb_property_uint32(prop);
+            }
+        }
+
+        if (strncmp("sifive,plic-1.0.0", compatible, 18) == 0) {
+            plic = reg;
+        } else if (strncmp("sifive,clint0", compatible, 14) == 0) {
+            clint = reg;
+        } else if (strncmp("virtio,mmio", compatible, 12) == 0) {
+            virtio0 = reg;
+            virtio0_irq = irq;
+            if (found_virtio_disk == 0 && virtio_disk_probe() == 0) {
+                found_virtio_disk = 1;
+            }
+        }
+    }
+    if (found_virtio_disk == 0) {
+        panic("virtio disk not found");
+    }
+}
+
 // start() jumps here in supervisor mode on all CPUs.
 void
 main(void *fdt)
 {
     sbi_debug_console_write(20, "\nxv6 kernel booting\n");
+    dtbparse(fdt);
+
     printfinit();
     consoleinit();
     printf("kernel(%d): console initialized\n", cpuid());
-    dtbparse(fdt);
     kinit(ram_start, ram_size);            // physical page allocator
     printf("kernel(%d): physical page allocator initialized\n", cpuid());
     kvminit();          // create kernel page table

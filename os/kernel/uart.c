@@ -5,15 +5,16 @@
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
+#include "globals.h"
 #include "riscv.h"
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
 
 // the UART control registers are memory-mapped
-// at address UART0. this macro returns the
+// at address uart0. this macro returns the
 // address of one of the registers.
-#define Reg(reg) ((volatile unsigned char *)(UART0 + reg))
+#define Reg(reg) ((volatile unsigned char *)(uart0 + reg))
 
 // the UART control registers.
 // some have different meanings for

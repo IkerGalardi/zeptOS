@@ -1,6 +1,7 @@
 #include "param.h"
 #include "types.h"
 #include "memlayout.h"
+#include "globals.h"
 #include "elf.h"
 #include "riscv.h"
 #include "defs.h"
@@ -25,13 +26,13 @@ kvmmake(void)
     memset(kpgtbl, 0, PGSIZE);
 
     // uart registers
-    kvmmap(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+    kvmmap(kpgtbl, uart0, uart0, PGSIZE, PTE_R | PTE_W);
 
     // virtio mmio disk interface
-    kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+    kvmmap(kpgtbl, virtio0, virtio0, PGSIZE, PTE_R | PTE_W);
 
     // PLIC
-    kvmmap(kpgtbl, PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+    kvmmap(kpgtbl, plic, plic, 0x400000, PTE_R | PTE_W);
 
     // map kernel text executable and read-only.
     kvmmap(kpgtbl, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);

@@ -4,15 +4,14 @@ LD=riscv64-linux-gnu-ld
 OBJCOPY=riscv64-linux-gnu-objcopy
 OBJDUMP=riscv64-linux-gnu-objdump
 
-RESULTS=build/opensbi-dynamic.bin \
+RESULTS=firmware/build/platform/generic/firmware/fw_dynamic.bin \
         build/kernel \
         build/fs.img
 
 all: $(RESULTS)
 
-build/opensbi-dynamic.bin:
+firmware/build/platform/generic/firmware/fw_dynamic.bin:
 	make -C firmware/ PLATFORM=generic CROSS_COMPILE=riscv64-linux-gnu-
-	mv firmware/build/platform/generic/firmware/fw_dynamic.bin build/opensbi-dynamic.bin
 
 build/kernel:
 	make -C os/ kernel/kernel CC=$(CC) AS=$(AS) LD=$(LD)
@@ -27,7 +26,7 @@ clean:
 	make -C firmware/ clean
 	make -C os clean
 
-QEMUOPTS  = -machine virt -bios build/opensbi-dynamic.bin -kernel build/kernel
+QEMUOPTS  = -machine virt -bios firmware/build/platform/generic/firmware/fw_dynamic.bin -kernel build/kernel
 QEMUOPTS += -m 128M -smp 4 -nographic -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=build/fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0

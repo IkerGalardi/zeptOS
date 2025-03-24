@@ -57,7 +57,7 @@ CFLAGS += -I.
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	@echo "LD      kernel/kernel"
-	@ $(LD) $(LDFLAGS) -T kernel/kernel.ld -o kernel/kernel $(OBJS)
+	@ $(LD) $(CFLAGS) $(LDFLAGS) -T kernel/kernel.ld -o kernel/kernel $(OBJS)
 	@echo "OBJDUMP kernel/kernel.asm"
 	@ $(OBJDUMP) -S kernel/kernel > kernel/kernel.asm
 	@echo "OBJDUMP kernel/kernel.sym"
@@ -112,7 +112,7 @@ user/%.o: user/%.c
 	@ $(CC) -c $(CFLAGS) -o $@ $^
 
 user/_%: user/%.o $(ULIB)
-	@ $(LD) $(LDFLAGS) -T user/user.ld -o $@ $^
+	@ $(LD) $(CFLAGS) $(LDFLAGS) -T user/user.ld -o $@ $^
 	@ $(OBJDUMP) -S $@ > user/$*.asm
 	@ $(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > user/$*.sym
 

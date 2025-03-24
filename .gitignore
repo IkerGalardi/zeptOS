@@ -4,6 +4,7 @@ kernel/*.o
 kernel/*.d
 kernel/*.asm
 kernel/*.sym
+kernel/kernel
 user/*.o
 user/*.d
 user/*.asm

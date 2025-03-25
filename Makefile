@@ -101,7 +101,8 @@ UPROGS= user/_cat \
 ULIB = user/ulib.o user/usys.o user/printf.o user/umalloc.o
 
 user/usys.S : user/usys.pl
-	perl user/usys.pl > user/usys.S
+	@echo "PERL    $^"
+	@ perl user/usys.pl > user/usys.S
 
 user/%.o: user/%.S
 	@echo "CC      $^"

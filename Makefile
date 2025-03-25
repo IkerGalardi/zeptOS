@@ -1,8 +1,8 @@
-CC=riscv64-linux-gnu-gcc
-AS=riscv64-linux-gnu-as
-LD=riscv64-linux-gnu-ld
-OBJCOPY=riscv64-linux-gnu-objcopy
-OBJDUMP=riscv64-linux-gnu-objdump
+CC=clang --target=riscv64
+AS=clang --target=riscv64
+LD=clang --target=riscv64
+OBJCOPY=llvm-objcopy
+OBJDUMP=llvm-objdump
 
 RESULTS=firmware/build/platform/generic/firmware/fw_dynamic.bin \
         kernel/kernel \
@@ -57,7 +57,7 @@ CFLAGS += -I.
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	@echo "LD      kernel/kernel"
-	@ $(LD) $(LDFLAGS) -T kernel/kernel.ld -o kernel/kernel $(OBJS)
+	@ $(LD) $(CFLAGS) $(LDFLAGS) -T kernel/kernel.ld -o kernel/kernel $(OBJS)
 	@echo "OBJDUMP kernel/kernel.asm"
 	@ $(OBJDUMP) -S kernel/kernel > kernel/kernel.asm
 	@echo "OBJDUMP kernel/kernel.sym"
@@ -112,7 +112,7 @@ user/%.o: user/%.c
 	@ $(CC) -c $(CFLAGS) -o $@ $^
 
 user/_%: user/%.o $(ULIB)
-	@ $(LD) $(LDFLAGS) -T user/user.ld -o $@ $^
+	@ $(LD) $(CFLAGS) $(LDFLAGS) -T user/user.ld -o $@ $^
 	@ $(OBJDUMP) -S $@ > user/$*.asm
 	@ $(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > user/$*.sym
 

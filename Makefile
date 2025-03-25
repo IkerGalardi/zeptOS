@@ -121,15 +121,15 @@ fs.img: mkfs/mkfs README.md $(UPROGS)
 	@echo "MKFS    fs.img"
 	@ mkfs/mkfs fs.img README.md $(UPROGS)
 
-QEMUOPTS  = -machine virt -bios firmware/build/platform/generic/firmware/fw_dynamic.bin -kernel build/kernel
+QEMUOPTS  = -machine virt -bios firmware/build/platform/generic/firmware/fw_dynamic.bin -kernel kernel/kernel
 QEMUOPTS += -m 128M -smp 4 -nographic -global virtio-mmio.force-legacy=false
-QEMUOPTS += -drive file=build/fs.img,if=none,format=raw,id=x0
+QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
 qemu: $(RESULTS)
 	qemu-system-riscv64 $(QEMUOPTS)
 
-qemu-gdb: build/kernel build/fs.img
+qemu-gdb: kernel/kernel fs.img
 	qemu-system-riscv64 $(QEMUOPTS) -S -s
 
 clean:

@@ -11,7 +11,7 @@ RESULTS=firmware/build/platform/generic/firmware/fw_dynamic.bin \
 all: $(RESULTS)
 
 firmware/build/platform/generic/firmware/fw_dynamic.bin:
-	make -C firmware/ PLATFORM=generic CROSS_COMPILE=riscv64-linux-gnu-
+	make -C firmware/ PLATFORM=generic LLVM=1
 
 # Kernel building
 

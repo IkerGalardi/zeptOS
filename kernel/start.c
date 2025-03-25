@@ -6,8 +6,8 @@
 
 volatile static int started = 0;
 
-void kmain(void *fdt);
-void kmain_secondary();
+void main(void *fdt);
+void main_secondary();
 void timerinit();
 
 // entry.S needs one stack per CPU.
@@ -40,8 +40,8 @@ start(uint64 hartid, void *fdt)
         // next calls to this function go to main_secondary() instead of main()
         started = 1;
 
-        kmain(fdt);
+        main(fdt);
     } else {
-        kmain_secondary();
+        main_secondary();
     }
 }

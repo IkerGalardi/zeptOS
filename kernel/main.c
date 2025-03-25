@@ -109,7 +109,7 @@ static void dtbparse(void *fdt)
 
 // start() jumps here in supervisor mode on all CPUs.
 void
-kmain(void *fdt)
+main(void *fdt)
 {
     sbi_debug_console_write(20, "\nxv6 kernel booting\n");
     dtbparse(fdt);
@@ -176,7 +176,7 @@ kmain(void *fdt)
     scheduler();
 }
 
-void kmain_secondary()
+void main_secondary()
 {
     printf("kernel(%d): starting auxiliary harts\n", cpuid());
     kvminithart();        // turn on paging

@@ -1,6 +1,6 @@
 CC=clang --target=riscv64
 AS=clang --target=riscv64
-LD=riscv64-linux-gnu-ld
+LD=ld.lld
 OBJCOPY=llvm-objcopy
 OBJDUMP=llvm-objdump
 

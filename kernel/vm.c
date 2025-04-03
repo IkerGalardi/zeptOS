@@ -123,7 +123,7 @@ walkaddr(pagetable_t pagetable, uint64 va)
     if((*pte & PTE_U) == 0)
         return 0;
     pa = PTE2PA(*pte);
-    return pa;
+    return pa + (va & 0xfff);
 }
 
 // add a mapping to the kernel page table.

@@ -70,10 +70,6 @@ exec(char *path, char **argv)
             printf("kernel(%d): exec %s: unknown error on program header %d", cpuid(), path, i);
             goto bad;
         }
-        if(ph.vaddr % PGSIZE != 0) {
-            printf("kernel(%d): exec %s: program header %d address (%lx) is not page aligned\n", cpuid(), path, i, ph.vaddr);
-            goto bad;
-        }
         uint64 sz1;
         if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz, flags2perm(ph.flags))) == 0) {
             printf("kernel(%d): exec %s: program header %d could not be mapped\n", cpuid(), path, i);
@@ -155,6 +151,15 @@ exec(char *path, char **argv)
     return -1;
 }
 
+static uint min_uint(uint a, uint b)
+{
+    if (a < b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+
 // Load a program segment into pagetable at virtual address va.
 // va must be page-aligned
 // and the pages from va to va+sz must already be mapped.
@@ -162,10 +167,29 @@ exec(char *path, char **argv)
 static int
 loadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz)
 {
-    uint i, n;
+    uint i, n, forstart = 0;
     uint64 pa;
 
-    for(i = 0; i < sz; i += PGSIZE){
+    if (va % PGSIZE != 0) {
+        const uint pgleft = PGSIZE - (va & 0xfff);
+
+        pa = walkaddr(pagetable, va);
+        if (pa == 0)
+            panic("loadseg: address should exist");
+
+        n = min_uint(pgleft, sz);
+        if(readi(ip, 0, (uint64)pa, offset, n) != n) {
+            return -1;
+        }
+
+        if (sz <= pgleft) {
+            return 0;
+        }
+
+        forstart = PGSIZE;
+    }
+
+    for(i = forstart; i < sz; i += PGSIZE){
         pa = walkaddr(pagetable, va + i);
         if(pa == 0)
             panic("loadseg: address should exist");

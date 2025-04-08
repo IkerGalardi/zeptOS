@@ -141,3 +141,9 @@ clean:
 	@ rm -f *.sym
 	@ rm -f *.asm
 	@ rm -f fs.img
+
+env:
+	docker run -v $(shell pwd):/code -w /code/ -it zeptosbuild
+
+build-env:
+	docker build . -t zeptosbuild

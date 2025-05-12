@@ -113,6 +113,7 @@ user/%.o: user/%.c
 	@ $(CC) -c $(CFLAGS) -o $@ $^
 
 user/_%: user/%.o $(ULIB)
+	@echo "LD      $@"
 	@ $(LD) -nostdlib $(LDFLAGS) -T user/user.ld -o $@ $^
 	@ $(OBJDUMP) -S $@ > user/$*.asm
 	@ $(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > user/$*.sym

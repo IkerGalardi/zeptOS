@@ -125,6 +125,7 @@ QEMUOPTS  = -machine virt -bios firmware/build/platform/generic/firmware/fw_dyna
 QEMUOPTS += -m 128M -smp 4 -nographic -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+QEMUOPTS += -cpu rv64,zicfilp=true
 
 qemu: $(RESULTS)
 	qemu-system-riscv64 $(QEMUOPTS)

@@ -170,6 +170,11 @@ kmain(void *fdt)
                 cpuid());
     }
 
+    uint64 senvcfg = r_senvcfg();
+    senvcfg |= 1 << 2;
+    w_senvcfg(senvcfg);
+    printf("kernel(%d): enabled landing pads for user mode\n", cpuid());
+
     // ask for clock interrupts.
     sbi_set_timer(r_time() + 1000000);
 
@@ -185,6 +190,11 @@ void kmain_secondary()
     printf("kernel(%d): traps initialized\n", cpuid());
     plicinithart();     // ask PLIC for device interrupts
     printf("kernel(%d): local interrupt controller initialized\n", cpuid());
+
+    uint64 senvcfg = r_senvcfg();
+    senvcfg |= 1 << 2;
+    w_senvcfg(senvcfg);
+    printf("kernel(%d): enabled landing pads for user mode\n", cpuid());
 
     // ask for clock interrupts.
     sbi_set_timer(r_time() + 1000000);

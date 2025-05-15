@@ -40,7 +40,8 @@ usertrap(void)
 {
     int which_dev = 0;
 
-    if((r_sstatus() & SSTATUS_SPP) != 0)
+    uint64 sstatus = r_sstatus();
+    if((sstatus & SSTATUS_SPP) != 0)
         panic("usertrap: not from user mode");
 
     // send interrupts and exceptions to kerneltrap(),
@@ -48,7 +49,10 @@ usertrap(void)
     w_stvec((uint64)kernelvec);
 
     struct proc *p = myproc();
-    
+
+    // save the pelp bit (LP_EXPECTED/LP_NOT_EXPECTED)
+    p->trapframe->pelp = (sstatus >> 23) & 0x1;
+
     // save user program counter.
     p->trapframe->epc = r_sepc();
     
@@ -111,11 +115,14 @@ usertrapret(void)
 
     // set up the registers that trampoline.S's sret will use
     // to get to user space.
-    
-    // set S Previous Privilege mode to User.
+
+    // set S Previous Privilege mode to User and
+    // set the pelp to the one in the trap
     unsigned long x = r_sstatus();
-    x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
-    x |= SSTATUS_SPIE; // enable interrupts in user mode
+    x &= ~SSTATUS_SPP;              // clear SPP to 0 for user mode
+    x |= SSTATUS_SPIE;              // enable interrupts in user mode
+    x &= ~(1L << 23);               // clear the PELP bit
+    x |= p->trapframe->pelp << 23;  // set PELP bit from trapframe
     w_sstatus(x);
 
     // set S Exception Program Counter to the saved user pc.

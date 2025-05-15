@@ -72,6 +72,21 @@ r_sepc()
     return x;
 }
 
+// Userspace environment configuration registers.
+static inline void
+w_senvcfg(uint64 x)
+{
+    asm volatile("csrw senvcfg, %0" : : "r" (x));
+}
+
+static inline uint64
+r_senvcfg()
+{
+    uint64 x;
+    asm volatile("csrr %0, senvcfg" : "=r" (x) );
+    return x;
+}
+
 // Supervisor Trap-Vector Base Address
 // low two bits are mode.
 static inline void 

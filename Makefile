@@ -53,7 +53,7 @@ CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin
 CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc
 CFLAGS += -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-stack-protector
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
-CFLAGS += -I.
+CFLAGS += -I. -menable-experimental-extensions -march=rv64gc_zicfilp1p0
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	@echo "LD      kernel/kernel"
@@ -126,6 +126,7 @@ QEMUOPTS  = -machine virt -bios firmware/build/platform/generic/firmware/fw_dyna
 QEMUOPTS += -m 128M -smp 4 -nographic -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+QEMUOPTS += -cpu rv64,zicfilp=true
 
 qemu: $(RESULTS)
 	qemu-system-riscv64 $(QEMUOPTS)

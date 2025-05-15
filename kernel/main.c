@@ -142,6 +142,8 @@ kmain(void *fdt)
     printf("kernel(%d): virtio disk driver initialized\n", cpuid());
     userinit();         // first user process
     printf("kernel(%d): first program initialized\n", cpuid());
+    sbi_fwft_set(SBI_FEAT_LANDING_PAD, 1, 0);
+    printf("kernel(%d): kernel landing pads enabled\n", cpuid());
 
     if (sbi_probe_extension(SBI_EXTENSION_HSM) != 0) {
         printf("kernel(%d): HSM extension available, starting other cores\n",
@@ -200,6 +202,8 @@ void kmain_secondary()
     printf("kernel(%d): traps initialized\n", cpuid());
     plicinithart();     // ask PLIC for device interrupts
     printf("kernel(%d): local interrupt controller initialized\n", cpuid());
+    sbi_fwft_set(SBI_FEAT_LANDING_PAD, 1, 0);
+    printf("kernel(%d): kernel landing pads enabled\n", cpuid());
 
 #ifdef CONFIG_USER_LANDING_PAD_ENABLED
     uint64 senvcfg_lp = r_senvcfg();

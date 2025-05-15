@@ -53,7 +53,9 @@ CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin
 CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc
 CFLAGS += -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-stack-protector
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
-CFLAGS += -I. -menable-experimental-extensions -march=rv64gc_zicfilp1p0
+CFLAGS += -I. -menable-experimental-extensions -march=rv64gc_zicfilp1p0_zicfiss1p0
+
+CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack -fcf-protection=return
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	@echo "LD      kernel/kernel"
@@ -110,7 +112,7 @@ user/%.o: user/%.S
 
 user/%.o: user/%.c
 	@echo "CC      $^"
-	@ $(CC) -c $(CFLAGS) -o $@ $^
+	@ $(CC) -c $(CFLAGS) $(CFLAGS_USER_EXTRA) -o $@ $^
 
 user/_%: user/%.o $(ULIB)
 	@echo "LD      $@"

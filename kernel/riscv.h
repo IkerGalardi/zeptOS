@@ -87,6 +87,20 @@ r_senvcfg()
     return x;
 }
 
+static inline void
+w_ssp(uint64 x)
+{
+    asm volatile("csrw ssp, %0" : : "r" (x));
+}
+
+static inline uint64
+r_ssp()
+{
+    uint64 x;
+    asm volatile("csrr %0, ssp" : "=r" (x) );
+    return x;
+}
+
 // Supervisor Trap-Vector Base Address
 // low two bits are mode.
 static inline void 

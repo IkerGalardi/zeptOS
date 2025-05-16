@@ -54,6 +54,13 @@ exec(char *path, char **argv)
         goto bad;
     }
 
+    void *shadow_stack = kalloc();
+    if(mappages(pagetable, SHADOW_STACK, 0x1000, (uint64)shadow_stack, PTE_W) < 0) {
+        uvmunmap(pagetable, SHADOW_STACK, 0x1000, 1);
+        goto bad;
+    }
+    w_ssp(SHADOW_STACK + PGSIZE - 8);
+
     // Load program into memory.
     for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
         if(readi(ip, 0, (uint64)&ph, off, sizeof(ph)) != sizeof(ph)) {

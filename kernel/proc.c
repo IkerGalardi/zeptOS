@@ -204,6 +204,14 @@ proc_pagetable(struct proc *p)
         return 0;
     }
 
+    void *shadow_stack = kalloc();
+    if(mappages(pagetable, SHADOW_STACK, 0x1000, (uint64)shadow_stack, PTE_W) < 0) {
+        uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+        uvmunmap(pagetable, TRAPFRAME, 1, 0);
+        uvmunmap(pagetable, SHADOW_STACK, 1, 1);
+        return 0;
+    }
+
     return pagetable;
 }
 
@@ -214,6 +222,7 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);
     uvmunmap(pagetable, TRAPFRAME, 1, 0);
+    uvmunmap(pagetable, SHADOW_STACK, 1, 1);
     uvmfree(pagetable, sz);
 }
 

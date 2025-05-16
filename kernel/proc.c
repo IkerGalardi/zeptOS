@@ -132,6 +132,7 @@ found:
         return 0;
     }
     p->trapframe->pelp = 0;
+    p->trapframe->ssp = 0;
 
     // An empty user page table.
     p->pagetable = proc_pagetable(p);

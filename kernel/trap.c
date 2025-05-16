@@ -53,6 +53,9 @@ usertrap(void)
     // save the pelp bit (LP_EXPECTED/LP_NOT_EXPECTED)
     p->trapframe->pelp = (sstatus >> 23) & 0x1;
 
+    // save the shadow stack pointer
+    p->trapframe->ssp = r_ssp();
+
     // save user program counter.
     p->trapframe->epc = r_sepc();
     
@@ -124,6 +127,9 @@ usertrapret(void)
     x &= ~(1L << 23);               // clear the PELP bit
     x |= p->trapframe->pelp << 23;  // set PELP bit from trapframe
     w_sstatus(x);
+
+    // set the shadow stack pointer
+    w_ssp(p->trapframe->ssp);
 
     // set S Exception Program Counter to the saved user pc.
     w_sepc(p->trapframe->epc);

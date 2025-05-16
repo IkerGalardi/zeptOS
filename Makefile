@@ -99,6 +99,7 @@ UPROGS= user/_cat \
         user/_grind \
         user/_wc \
         user/_zombie \
+        user/_shadowtest
 
 ULIB = user/ulib.o user/usys.o user/printf.o user/umalloc.o
 

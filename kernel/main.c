@@ -175,6 +175,8 @@ kmain(void *fdt)
     senvcfg |= 1 << 3;
     w_senvcfg(senvcfg);
     printf("kernel(%d): enabled landing pads for user mode\n", cpuid());
+
+    sbi_fwft_set(SBI_FEAT_SHADOW_STACK, 1, 0);
     printf("kernel(%d): enabled shadow stack for user mode\n", cpuid());
 
     // ask for clock interrupts.
@@ -198,6 +200,8 @@ void kmain_secondary()
     senvcfg |= 1 << 3;
     w_senvcfg(senvcfg);
     printf("kernel(%d): enabled landing pads for user mode\n", cpuid());
+
+    sbi_fwft_set(SBI_FEAT_SHADOW_STACK, 1, 0);
     printf("kernel(%d): enabled shadow stack for user mode\n", cpuid());
 
     // ask for clock interrupts.

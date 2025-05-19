@@ -107,3 +107,13 @@ struct sbiret sbi_hart_get_status(uint64 hartid)
 {
     return ecall(SBI_EXTENSION_HSM, 2, hartid, 0, 0, 0, 0, 0);
 }
+
+struct sbiret sbi_fwft_set(enum sbifeat feature, uint64 value, uint64 flags)
+{
+    return ecall(SBI_EXTENSION_FWFT, 0, feature, value, flags, 0, 0, 0);
+}
+
+struct sbiret sbi_fwft_get(enum sbifeat feature)
+{
+    return ecall(SBI_EXTENSION_FWFT, 0, feature, 0, 0, 0, 0, 0);
+}

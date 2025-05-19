@@ -146,7 +146,7 @@ clean:
 	@ rm -f user/usys.S
 
 env:
-	docker run -v $(shell pwd):/code -w /code/ -it zeptosbuild
+	docker run --name zeptosbuild -v $(shell pwd):/code -w /code/ -it zeptosbuild 2> /dev/null || docker exec -it zeptosbuild sh
 
 build-env:
 	docker build . -t zeptosbuild

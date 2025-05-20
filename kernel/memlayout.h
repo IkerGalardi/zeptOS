@@ -50,6 +50,9 @@
 //     fixed-size stack
 //     expandable heap
 //     ...
+//     SHADOW STACK
 //     TRAPFRAME (p->trapframe, used by the trampoline)
 //     TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
+
+#define SHADOW_STACK (TRAPFRAME - PGSIZE)

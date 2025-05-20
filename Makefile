@@ -53,7 +53,9 @@ CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin
 CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc
 CFLAGS += -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-stack-protector
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
-CFLAGS += -I. -menable-experimental-extensions -march=rv64gc_zicfilp1p0
+CFLAGS += -I. -menable-experimental-extensions -march=rv64gc_zicfilp1p0_zicfiss1p0
+
+CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack -fcf-protection=return
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	@echo "LD      kernel/kernel"
@@ -97,6 +99,7 @@ UPROGS= user/_cat \
         user/_grind \
         user/_wc \
         user/_zombie \
+        user/_shadowtest
 
 ULIB = user/ulib.o user/usys.o user/printf.o user/umalloc.o
 
@@ -110,7 +113,7 @@ user/%.o: user/%.S
 
 user/%.o: user/%.c
 	@echo "CC      $^"
-	@ $(CC) -c $(CFLAGS) -o $@ $^
+	@ $(CC) -c $(CFLAGS) $(CFLAGS_USER_EXTRA) -o $@ $^
 
 user/_%: user/%.o $(ULIB)
 	@echo "LD      $@"
@@ -126,7 +129,7 @@ QEMUOPTS  = -machine virt -bios firmware/build/platform/generic/firmware/fw_dyna
 QEMUOPTS += -m 128M -smp 4 -nographic -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
-QEMUOPTS += -cpu rv64,zicfilp=true
+QEMUOPTS += -cpu rv64,zicfilp=true,zicfiss=true,zimop=true,zca=true,zcmop=true
 
 qemu: $(RESULTS)
 	qemu-system-riscv64 $(QEMUOPTS)

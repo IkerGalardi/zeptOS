@@ -40,6 +40,7 @@ enum sbiext
     SBI_EXTENSION_CPPC = 0x43505043,
     SBI_EXTENSION_NACL = 0x4E41434C,
     SBI_EXTENSION_STA  = 0x535441,
+    SBI_EXTENSION_FWFT = 0x46574654,
 };
 
 enum sbistate
@@ -51,6 +52,16 @@ enum sbistate
     SBI_STATE_SUSPENDED       = 4,
     SBI_STATE_SUSPEND_PENDING = 5,
     SBI_STATE_RESUME_PENDING  = 6,
+};
+
+enum sbifeat
+{
+    SBI_FEAT_MISALIGNED_EXC_DELEG  = 0x0,
+    SBI_FEAT_LANDING_PAD           = 0x1,
+    SBI_FEAT_SHADOW_STACK          = 0x2,
+    SBI_FEAT_DOUBLE_TRAP           = 0x3,
+    SBI_FEAT_PTE_AD_HW_UPDATING    = 0x4,
+    SBI_FEAT_POINTER_MASKING_PMLEN = 0x5,
 };
 
 uint32 sbi_get_spec_version();
@@ -78,5 +89,9 @@ struct sbiret sbi_hart_start(uint64 hartid, uint64 addr, uint64 opaque);
 struct sbiret sbi_hart_stop();
 
 struct sbiret sbi_hart_get_status(uint64 hartid);
+
+struct sbiret sbi_fwft_set(enum sbifeat feature, uint64 value, uint64 flags);
+
+struct sbiret sbi_fwft_get(enum sbifeat feature);
 
 #endif // OS_KERNEL_SBI

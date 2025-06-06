@@ -16,3 +16,6 @@ user/usys.S
 mkfs/mkfs
 fs.img
 tools/mkfs
+tools/rvpte
+tools/rvscause
+tools/rvvaddr

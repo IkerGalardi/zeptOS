@@ -4,7 +4,10 @@ LD=ld.lld
 
 RESULTS=firmware/build/platform/generic/firmware/fw_dynamic.bin \
         kernel/kernel \
-        fs.img
+        fs.img \
+        tools/rvpte \
+        tools/rvscause \
+        tools/rvvaddr
 
 all: $(RESULTS)
 
@@ -70,6 +73,18 @@ kernel/%.o: kernel/%.c
 tools/mkfs: tools/mkfs.c kernel/fs.h kernel/param.h
 	@echo "CC      tools/mkfs"
 	@ gcc -Werror -Wall -I. -o tools/mkfs tools/mkfs.c
+
+tools/rvpte: tools/rvpte.c
+	@echo "CC      tools/rvpte"
+	@ gcc -Werror -Wall -I. -o tools/rvpte tools/rvpte.c
+
+tools/rvscause: tools/rvscause.c
+	@echo "CC      tools/rvscause"
+	@ gcc -Werror -Wall -I. -o tools/rvscause tools/rvscause.c
+
+tools/rvvaddr: tools/rvvaddr.c
+	@echo "CC      tools/rvvaddr"
+	@ gcc -Werror -Wall -I. -o tools/rvvaddr tools/rvvaddr.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
@@ -140,6 +155,9 @@ clean:
 	@ rm -f fs.img
 	@ rm -f user/usys.S
 	@ rm -f tools/mkfs
+	@ rm -f tools/rvpte
+	@ rm -f tools/rvscause
+	@ rm -f tools/rvvaddr
 
 env:
 	docker run --name zeptosbuild --rm -v $(shell pwd):/code -w /code/ -it zeptosbuild 2> /dev/null || docker exec -it zeptosbuild sh

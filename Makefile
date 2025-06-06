@@ -1,8 +1,6 @@
 CC=clang --target=riscv64
 AS=clang --target=riscv64
 LD=ld.lld
-OBJCOPY=llvm-objcopy
-OBJDUMP=llvm-objdump
 
 RESULTS=firmware/build/platform/generic/firmware/fw_dynamic.bin \
         kernel/kernel \
@@ -60,10 +58,6 @@ CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack -fcf-protection=return
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	@echo "LD      kernel/kernel"
 	@ $(LD) -nostdlib $(LDFLAGS) -T kernel/kernel.ld -o kernel/kernel $(OBJS)
-	@echo "OBJDUMP kernel/kernel.asm"
-	@ $(OBJDUMP) -S kernel/kernel > kernel/kernel.asm
-	@echo "OBJDUMP kernel/kernel.sym"
-	@ $(OBJDUMP) -t kernel/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > kernel/kernel.sym
 
 kernel/%.o: kernel/%.S
 	@echo "CC      $^"
@@ -118,8 +112,6 @@ user/%.o: user/%.c
 user/_%: user/%.o $(ULIB)
 	@echo "LD      $@"
 	@ $(LD) -nostdlib $(LDFLAGS) -T user/user.ld -o $@ $^
-	@ $(OBJDUMP) -S $@ > user/$*.asm
-	@ $(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > user/$*.sym
 
 fs.img: mkfs/mkfs README.md $(UPROGS)
 	@echo "MKFS    fs.img"

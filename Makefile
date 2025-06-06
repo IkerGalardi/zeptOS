@@ -67,9 +67,9 @@ kernel/%.o: kernel/%.c
 	@echo "CC      $^"
 	@ $(CC) -c $(CFLAGS) -o $@ $^
 
-mkfs/mkfs: mkfs/mkfs.c kernel/fs.h kernel/param.h
-	@echo "CC      mkfs/mkfs"
-	@ gcc -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
+tools/mkfs: tools/mkfs.c kernel/fs.h kernel/param.h
+	@echo "CC      tools/mkfs"
+	@ gcc -Werror -Wall -I. -o tools/mkfs tools/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
@@ -113,9 +113,9 @@ user/_%: user/%.o $(ULIB)
 	@echo "LD      $@"
 	@ $(LD) -nostdlib $(LDFLAGS) -T user/user.ld -o $@ $^
 
-fs.img: mkfs/mkfs README.md $(UPROGS)
+fs.img: tools/mkfs README.md $(UPROGS)
 	@echo "MKFS    fs.img"
-	@ mkfs/mkfs fs.img README.md $(UPROGS)
+	@ tools/mkfs fs.img README.md $(UPROGS)
 
 QEMUOPTS  = -machine virt -bios firmware/build/platform/generic/firmware/fw_dynamic.bin -kernel kernel/kernel
 QEMUOPTS += -m 128M -smp 4 -nographic -global virtio-mmio.force-legacy=false
@@ -139,6 +139,7 @@ clean:
 	@ rm -f *.asm
 	@ rm -f fs.img
 	@ rm -f user/usys.S
+	@ rm -f tools/mkfs
 
 env:
 	docker run --name zeptosbuild --rm -v $(shell pwd):/code -w /code/ -it zeptosbuild 2> /dev/null || docker exec -it zeptosbuild sh

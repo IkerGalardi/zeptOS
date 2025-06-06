@@ -8,7 +8,6 @@ static inline struct sbiret ecall(int extension, int function,
                                   uint64 arg4,
                                   uint64 arg5)
 {
-
     register uint64 a0 asm ("a0") = arg0;
     register uint64 a1 asm ("a1") = arg1;
     register uint64 a2 asm ("a2") = arg2;

@@ -1,3 +1,4 @@
+#include "aes.h"
 #include "kernel/types.h"
 #include "user/user.h"
 
@@ -30,17 +31,28 @@ static char rand_byte()
 
 int main(int argc, char *argv[])
 {
-    char *buffer = malloc(BUFFER_SIZE_BYTES);
+    uint8 *buffer = malloc(BUFFER_SIZE_BYTES);
     for (int i = 0; i < BUFFER_SIZE_BYTES; i++) {
         buffer[i] = rand_byte();
     }
 
-    for (int i = 0; i < 10; i++) {
+    uint8 aes_key[AES_KEYLEN] = {0};
+    for (int i = 0; i < AES_KEYLEN; i++) {
+        aes_key[i] = rand_byte();
+    }
+
+    uint8 aes_iv[AES_BLOCKLEN] = {0};
+    for (int i = 0; i < AES_BLOCKLEN; i++) {
+        aes_iv[i] = rand_byte();
+    }
+
+    struct AES_ctx ctx;
+    AES_init_ctx_iv(&ctx, aes_key, aes_iv);
+
+    for (int i = 0; i < 50; i++) {
         uint64 start_cycles = rdtime();
 
-        for (int j = 0; j < BUFFER_SIZE_BYTES; j++) {
-            buffer[i] = rand_byte();
-        }
+        AES_CBC_encrypt_buffer(&ctx, buffer, BUFFER_SIZE_BYTES);
 
         uint64 end_cycles = rdtime();
         uint64 cycles = end_cycles - start_cycles;

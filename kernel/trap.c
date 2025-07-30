@@ -55,8 +55,10 @@ usertrap(void)
     p->trapframe->pelp = (sstatus >> 23) & 0x1;
 #endif // CONFIG_USER_LANDING_PAD_ENABLED
 
+#ifdef CONFIG_USER_SHADOW_STACK_HARDWARE
     // save the shadow stack pointer
     p->trapframe->ssp = r_ssp();
+#endif // CONFIG_USER_SHADOW_STACK_HARDWARE
 
     // save user program counter.
     p->trapframe->epc = r_sepc();
@@ -132,8 +134,10 @@ usertrapret(void)
 #endif // CONFIG_USER_LANDING_PAD_ENABLED
     w_sstatus(x);
 
+#ifdef CONFIG_USER_SHADOW_STACK_HARDWARE
     // set the shadow stack pointer
     w_ssp(p->trapframe->ssp);
+#endif // CONFIG_USER_SHADOW_STACK_HARDWARE
 
     // set S Exception Program Counter to the saved user pc.
     w_sepc(p->trapframe->epc);

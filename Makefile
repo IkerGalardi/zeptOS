@@ -69,7 +69,10 @@ CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
 CFLAGS += -I. -menable-experimental-extensions -march=rv64gc_zicfilp1p0_zicfiss1p0
 CFLAGS += $(DEFINES)
 
-CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack -fcf-protection=return
+CFLAGS_USER_EXTRA=
+ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)
+	CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack -fcf-protection=return
+endif
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	@echo "LD      kernel/kernel"

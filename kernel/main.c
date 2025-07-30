@@ -177,11 +177,13 @@ kmain(void *fdt)
     printf("kernel(%d): enabled landing pads for user mode\n", cpuid());
 #endif // CONFIG_USER_LANDING_PAD_ENABLED
 
+#ifdef CONFIG_USER_SHADOW_STACK_HARDWARE
     uint64 senvcfg_ss = r_senvcfg();
     senvcfg_ss |= 1 << 3;
     w_senvcfg(senvcfg_ss);
     sbi_fwft_set(SBI_FEAT_SHADOW_STACK, 1, 0);
     printf("kernel(%d): enabled shadow stack for user mode\n", cpuid());
+#endif // CONFIG_USER_SHADOW_STACK_HARDWARE
 
     // ask for clock interrupts.
     sbi_set_timer(r_time() + 1000000);
@@ -206,11 +208,13 @@ void kmain_secondary()
     printf("kernel(%d): enabled landing pads for user mode\n", cpuid());
 #endif // CONFIG_USER_LANDING_PAD_ENABLED
 
+#ifdef CONFIG_USER_SHADOW_STACK_HARDWARE
     uint64 senvcfg_ss = r_senvcfg();
     senvcfg_ss |= 1 << 3;
     w_senvcfg(senvcfg_ss);
     sbi_fwft_set(SBI_FEAT_SHADOW_STACK, 1, 0);
     printf("kernel(%d): enabled shadow stack for user mode\n", cpuid());
+#endif // CONFIG_USER_SHADOW_STACK_HARDWARE
 
     // ask for clock interrupts.
     sbi_set_timer(r_time() + 1000000);

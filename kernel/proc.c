@@ -134,7 +134,9 @@ found:
 #ifdef CONFIG_USER_LANDING_PAD_ENABLED
     p->trapframe->pelp = 0;
 #endif // CONFIG_USER_LANDING_PAD_ENABLED
+#ifdef CONFIG_USER_SHADOW_STACK_HARDWARE
     p->trapframe->ssp = 0;
+#endif // CONFIG_USER_SHADOW_STACK_HARDWARE
 
     // An empty user page table.
     p->pagetable = proc_pagetable(p);
@@ -206,6 +208,7 @@ proc_pagetable(struct proc *p)
         return 0;
     }
 
+#ifdef CONFIG_USER_SHADOW_STACK_HARDWARE
     void *shadow_stack = kalloc();
     if(mappages(pagetable, SHADOW_STACK, 0x1000, (uint64)shadow_stack, PTE_W) < 0) {
         uvmunmap(pagetable, TRAMPOLINE, 1, 0);
@@ -213,6 +216,7 @@ proc_pagetable(struct proc *p)
         uvmunmap(pagetable, SHADOW_STACK, 1, 1);
         return 0;
     }
+#endif // CONFIG_USER_SHADOW_STACK_HARDWARE
 
     return pagetable;
 }
@@ -224,7 +228,9 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);
     uvmunmap(pagetable, TRAPFRAME, 1, 0);
+#ifdef CONFIG_USER_SHADOW_STACK_HARDWARE
     uvmunmap(pagetable, SHADOW_STACK, 1, 1);
+#endif // CONFIG_USER_SHADOW_STACK_HARDWARE
     uvmfree(pagetable, sz);
 }
 

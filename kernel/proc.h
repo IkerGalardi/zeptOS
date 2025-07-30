@@ -82,7 +82,9 @@ struct trapframe {
     /* 288 */ uint64 pelp;
 #endif // CONFIG_USER_LANDING_PAD_ENABLED
 
+#ifdef CONFIG_USER_SHADOW_STACK_HARDWARE
     /* 296 */ uint64 ssp;
+#endif // CONFIG_USER_SHADOW_STACK_HARDWARE
 };
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };

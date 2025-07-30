@@ -1,3 +1,15 @@
+include config.mk
+
+DEFINES=
+
+ifeq ($(CONFIG_USER_LANDING_PAD), enabled)
+	DEFINES+=-DCONFIG_USER_LANDING_PAD_ENABLED
+endif
+
+ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)
+	DEFINES+=-DCONFIG_USER_SHADOW_STACK_HARDWARE
+endif
+
 CC=clang --target=riscv64
 AS=clang --target=riscv64
 LD=ld.lld
@@ -55,6 +67,7 @@ CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin
 CFLAGS += -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-stack-protector
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
 CFLAGS += -I. -menable-experimental-extensions -march=rv64gc_zicfilp1p0_zicfiss1p0
+CFLAGS += $(DEFINES)
 
 CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack -fcf-protection=return
 

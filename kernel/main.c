@@ -170,12 +170,16 @@ kmain(void *fdt)
                 cpuid());
     }
 
-    uint64 senvcfg = r_senvcfg();
-    senvcfg |= 1 << 2;
-    senvcfg |= 1 << 3;
-    w_senvcfg(senvcfg);
+#ifdef CONFIG_USER_LANDING_PAD_ENABLED
+    uint64 senvcfg_lp = r_senvcfg();
+    senvcfg_lp |= 1 << 2;
+    w_senvcfg(senvcfg_lp);
     printf("kernel(%d): enabled landing pads for user mode\n", cpuid());
+#endif // CONFIG_USER_LANDING_PAD_ENABLED
 
+    uint64 senvcfg_ss = r_senvcfg();
+    senvcfg_ss |= 1 << 3;
+    w_senvcfg(senvcfg_ss);
     sbi_fwft_set(SBI_FEAT_SHADOW_STACK, 1, 0);
     printf("kernel(%d): enabled shadow stack for user mode\n", cpuid());
 
@@ -195,12 +199,16 @@ void kmain_secondary()
     plicinithart();     // ask PLIC for device interrupts
     printf("kernel(%d): local interrupt controller initialized\n", cpuid());
 
-    uint64 senvcfg = r_senvcfg();
-    senvcfg |= 1 << 2;
-    senvcfg |= 1 << 3;
-    w_senvcfg(senvcfg);
+#ifdef CONFIG_USER_LANDING_PAD_ENABLED
+    uint64 senvcfg_lp = r_senvcfg();
+    senvcfg_lp |= 1 << 2;
+    w_senvcfg(senvcfg_lp);
     printf("kernel(%d): enabled landing pads for user mode\n", cpuid());
+#endif // CONFIG_USER_LANDING_PAD_ENABLED
 
+    uint64 senvcfg_ss = r_senvcfg();
+    senvcfg_ss |= 1 << 3;
+    w_senvcfg(senvcfg_ss);
     sbi_fwft_set(SBI_FEAT_SHADOW_STACK, 1, 0);
     printf("kernel(%d): enabled shadow stack for user mode\n", cpuid());
 

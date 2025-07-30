@@ -131,7 +131,9 @@ found:
         release(&p->lock);
         return 0;
     }
+#ifdef CONFIG_USER_LANDING_PAD_ENABLED
     p->trapframe->pelp = 0;
+#endif // CONFIG_USER_LANDING_PAD_ENABLED
     p->trapframe->ssp = 0;
 
     // An empty user page table.

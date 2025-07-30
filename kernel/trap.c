@@ -50,8 +50,10 @@ usertrap(void)
 
     struct proc *p = myproc();
 
+#ifdef CONFIG_USER_LANDING_PAD_ENABLED
     // save the pelp bit (LP_EXPECTED/LP_NOT_EXPECTED)
     p->trapframe->pelp = (sstatus >> 23) & 0x1;
+#endif // CONFIG_USER_LANDING_PAD_ENABLED
 
     // save the shadow stack pointer
     p->trapframe->ssp = r_ssp();
@@ -124,8 +126,10 @@ usertrapret(void)
     unsigned long x = r_sstatus();
     x &= ~SSTATUS_SPP;              // clear SPP to 0 for user mode
     x |= SSTATUS_SPIE;              // enable interrupts in user mode
+#ifdef CONFIG_USER_LANDING_PAD_ENABLED
     x &= ~(1L << 23);               // clear the PELP bit
     x |= p->trapframe->pelp << 23;  // set PELP bit from trapframe
+#endif // CONFIG_USER_LANDING_PAD_ENABLED
     w_sstatus(x);
 
     // set the shadow stack pointer

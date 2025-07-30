@@ -77,7 +77,11 @@ struct trapframe {
     /* 264 */ uint64 t4;
     /* 272 */ uint64 t5;
     /* 280 */ uint64 t6;
+
+#ifdef CONFIG_USER_LANDING_PAD_ENABLED
     /* 288 */ uint64 pelp;
+#endif // CONFIG_USER_LANDING_PAD_ENABLED
+
     /* 296 */ uint64 ssp;
 };
 

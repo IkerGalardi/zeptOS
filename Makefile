@@ -130,8 +130,12 @@ UPROGS= user/_cat \
         user/_grind \
         user/_wc \
         user/_zombie \
-        user/_shadowtest \
         user/_ciphertest
+
+
+ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)
+	UPROGS+=user/_shadowtest
+endif
 
 ULIB = user/ulib.o user/usys.o user/printf.o user/umalloc.o
 

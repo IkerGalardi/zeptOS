@@ -7,5 +7,6 @@ CONFIG_USER_LANDING_PAD=enabled
 # Wether or not to enable shadow stack sanitization
 # Possible values:
 #   disabled: shadow stack is disabled
+#   software: software based shadow stack
 #   hardware: shadow stack using hardware extensions
 CONFIG_USER_SHADOW_STACK=hardware

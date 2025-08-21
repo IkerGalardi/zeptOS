@@ -62,7 +62,7 @@ usertrap(void)
 
     // save user program counter.
     p->trapframe->epc = r_sepc();
-    
+
     if(r_scause() == 8){
         // system call
 
@@ -145,7 +145,7 @@ usertrapret(void)
     // tell trampoline.S the user page table to switch to.
     uint64 satp = MAKE_SATP(p->pagetable);
 
-    // jump to userret in trampoline.S at the top of memory, which 
+    // jump to userret in trampoline.S at the top of memory, which
     // switches to the user page table, restores user registers,
     // and switches to user mode with sret.
     uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
@@ -154,14 +154,14 @@ usertrapret(void)
 
 // interrupts and exceptions from kernel code go here via kernelvec,
 // on whatever the current kernel stack is.
-void 
+void
 kerneltrap()
 {
     int which_dev = 0;
     uint64 sepc = r_sepc();
     uint64 sstatus = r_sstatus();
     uint64 scause = r_scause();
-    
+
     if((sstatus & SSTATUS_SPP) == 0)
         panic("kerneltrap: not from supervisor mode");
     if(intr_get() != 0)

@@ -1,4 +1,5 @@
 include config.mk
+include check.mk
 
 DEFINES=
 MARCH_LP=

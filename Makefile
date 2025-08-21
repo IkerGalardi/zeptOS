@@ -1,14 +1,20 @@
 include config.mk
 
 DEFINES=
+MARCH_LP=
+MARCH_SS=
 
 ifeq ($(CONFIG_USER_LANDING_PAD), enabled)
 	DEFINES+=-DCONFIG_USER_LANDING_PAD_ENABLED
+	MARCH_LP=_zicfilp1p0
 endif
 
 ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)
 	DEFINES+=-DCONFIG_USER_SHADOW_STACK_HARDWARE
+	MARCH_SS=_zicfiss1p0
 endif
+
+MARCH=rv64gc$(MARCH_LP)$(MARCH_SS)
 
 CC=clang --target=riscv64
 AS=clang --target=riscv64
@@ -66,7 +72,7 @@ CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin
 CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc
 CFLAGS += -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-stack-protector
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
-CFLAGS += -I. -menable-experimental-extensions -march=rv64gc_zicfilp1p0_zicfiss1p0
+CFLAGS += -I. -menable-experimental-extensions -march=$(MARCH)
 CFLAGS += $(DEFINES)
 
 CFLAGS_USER_EXTRA=

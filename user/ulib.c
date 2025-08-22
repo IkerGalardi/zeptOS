@@ -3,13 +3,25 @@
 #include "kernel/fcntl.h"
 #include "user/user.h"
 
+#ifdef CONFIG_USER_SHADOW_STACK_SOFTWARE
+uint64 ss_buffer[256];
+#endif // CONFIG_USER_SHADOW_STACK_SOFTWARE
+
 //
 // wrapper so that it's OK if main() does not call exit().
 //
 void
+#ifdef CONFIG_USER_SHADOW_STACK_SOFTWARE
+__attribute__((no_sanitize("shadow-call-stack")))
+#endif // CONFIG_USER_SHADOW_STACK_SOFTWARE
 _main()
 {
     extern int main();
+
+#ifdef CONFIG_USER_SHADOW_STACK_SOFTWARE
+    asm volatile("mv x3, %0" : : "r" (ss_buffer));
+#endif // CONFIG_USER_SHADOW_STACK_SOFTWARE
+
     main();
     exit(0);
 }

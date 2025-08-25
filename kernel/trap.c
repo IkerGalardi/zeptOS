@@ -81,7 +81,7 @@ usertrap(void)
     } else if((which_dev = devintr()) != 0){
         // ok
     } else {
-        printf("usertrap(): unexpected scause %lx pid=%d\n", r_scause(), p->pid);
+        printf("usertrap(): unexpected scause %lx pid=%d name='%s'\n", r_scause(), p->pid, p->name);
         printf("                        sepc=%lx stval=%lx\n", r_sepc(), r_stval());
         setkilled(p);
     }

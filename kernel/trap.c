@@ -18,6 +18,37 @@ void kernelvec();
 
 extern int devintr();
 
+static char *scause_to_string(uint64 scause)
+{
+    if (scause >= 0x8000000000000000) {
+        panic("scause_to_string: interrupts are not supported");
+    }
+
+    switch(scause) {
+    case 0:  return "Instruction address misaligned";
+    case 1:  return "Instruction access fault";
+    case 2:  return "Illegal instruction";
+    case 3:  return "Breakpoint";
+    case 4:  return "Load address misaligned";
+    case 5:  return "Load access fault";
+    case 6:  return "Store/AMO address misaligned";
+    case 7:  return "Store/AMO access fault";
+    case 8:  return "Ecall from U-mode";
+    case 9:  return "Ecall from S-mode";
+    case 10:
+    case 11: return "Reserved";
+    case 12: return "Instruction page fault";
+    case 13: return "Load page fault";
+    case 14: return "Reserved";
+    case 15: return "Store/AMO page fault";
+    case 16:
+    case 17: return "Reserved";
+    case 18: return "Software check";
+    case 19: return "Hardware error";
+    default: return "Reserved/Custom use";
+    }
+}
+
 void
 trapinit(void)
 {
@@ -81,7 +112,7 @@ usertrap(void)
     } else if((which_dev = devintr()) != 0){
         // ok
     } else {
-        printf("usertrap(): unexpected scause %lx pid=%d name='%s'\n", r_scause(), p->pid, p->name);
+        printf("usertrap(): unexpected scause='%s' pid=%d name='%s'\n", scause_to_string(r_scause()), p->pid, p->name);
         printf("                        sepc=%lx stval=%lx\n", r_sepc(), r_stval());
         setkilled(p);
     }

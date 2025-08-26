@@ -14,15 +14,15 @@ void
 #ifdef CONFIG_USER_SHADOW_STACK_SOFTWARE
 __attribute__((no_sanitize("shadow-call-stack")))
 #endif // CONFIG_USER_SHADOW_STACK_SOFTWARE
-_main()
+_main(int argc, char *argv[])
 {
-    extern int main();
+    extern int main(int argc, char *argv[]);
 
 #ifdef CONFIG_USER_SHADOW_STACK_SOFTWARE
     asm volatile("mv x3, %0" : : "r" (ss_buffer));
 #endif // CONFIG_USER_SHADOW_STACK_SOFTWARE
 
-    main();
+    main(argc, argv);
     exit(0);
 }
 

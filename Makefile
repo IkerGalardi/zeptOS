@@ -145,7 +145,7 @@ user/usys.S : user/usys.pl
 	@ perl user/usys.pl > user/usys.S
 
 user/_ciphertest: user/ciphertest.o user/aes.o $(ULIB)
-	@echo "LD      _ciphertest"
+	@echo "LD      user/_ciphertest"
 	@ $(LD) -nostdlib $(LDFLAGS) -T user/user.ld -o $@ $^
 
 user/%.o: user/%.S

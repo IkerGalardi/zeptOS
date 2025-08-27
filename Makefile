@@ -10,6 +10,10 @@ ifeq ($(CONFIG_USER_LANDING_PAD), enabled)
 	MARCH_LP=_zicfilp1p0
 endif
 
+ifeq ($(CONFIG_USER_SHADOW_STACK), software)
+	DEFINES+=-DCONFIG_USER_SHADOW_STACK_SOFTWARE
+endif
+
 ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)
 	DEFINES+=-DCONFIG_USER_SHADOW_STACK_HARDWARE
 	MARCH_SS=_zicfiss1p0
@@ -66,7 +70,7 @@ OBJS = kernel/entry.o \
        kernel/dtb.o \
        kernel/globals.o
 
-CFLAGS  = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
+CFLAGS  = -Wall -Werror -O0 -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS += -MD -mcmodel=medany -fno-common -nostdlib -mno-relax
 CFLAGS += -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset
 CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero
@@ -79,6 +83,9 @@ CFLAGS += $(DEFINES)
 CFLAGS_USER_EXTRA=
 ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)
 	CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack -fcf-protection=return
+endif
+ifeq ($(CONFIG_USER_SHADOW_STACK), software)
+	CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack
 endif
 
 kernel/kernel: $(OBJS) kernel/kernel.ld

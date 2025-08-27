@@ -5,7 +5,9 @@ endif
 endif
 
 ifneq ($(CONFIG_USER_SHADOW_STACK), disabled)
+ifneq ($(CONFIG_USER_SHADOW_STACK), software)
 ifneq ($(CONFIG_USER_SHADOW_STACK), hardware)
-$(error "Wrong value for CONFIG_USER_SHADOW_STACK, should be either 'enabled' or 'hardware'")
+$(error "Wrong value for CONFIG_USER_SHADOW_STACK, should be either 'enabled', 'software' or 'hardware'")
+endif
 endif
 endif

@@ -138,7 +138,8 @@ UPROGS= user/_cat \
         user/_grind \
         user/_wc \
         user/_zombie \
-        user/_ciphertest
+        user/_ciphertest \
+        user/_lptest
 
 
 ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)

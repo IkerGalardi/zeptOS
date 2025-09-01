@@ -171,8 +171,15 @@ fs.img: tools/mkfs README.md $(UPROGS)
 	@echo "MKFS    fs.img"
 	@ tools/mkfs fs.img README.md $(UPROGS)
 
+NUM_VIRTCPUS=4
+CPUSETS=
+ifeq ($(CONFIG_BENCHMARK), enabled)
+	NUM_VIRTCPUS=1
+	CPUSETS=--cpuset-cpus="0"
+endif
+
 QEMUOPTS  = -machine virt -bios firmware/build/platform/generic/firmware/fw_dynamic.bin -kernel kernel/kernel
-QEMUOPTS += -m 128M -smp 4 -nographic -global virtio-mmio.force-legacy=false
+QEMUOPTS += -m 128M -smp $(NUM_VIRTCPUS) -nographic -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 QEMUOPTS += -cpu rv64,zicfilp=true,zicfiss=true,zimop=true,zca=true,zcmop=true
@@ -199,7 +206,7 @@ clean:
 	@ rm -f tools/rvvaddr
 
 env:
-	docker run --name zeptosbuild --rm -v $(shell pwd):/code -w /code/ -it zeptosbuild 2> /dev/null || docker exec -it zeptosbuild sh
+	docker run $(CPUSETS) --name zeptosbuild --rm -v $(shell pwd):/code -w /code/ -it zeptosbuild 2> /dev/null || docker exec -it zeptosbuild sh
 
 build-env:
 	docker build . -t zeptosbuild

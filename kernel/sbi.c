@@ -28,6 +28,22 @@ static inline struct sbiret ecall(int extension, int function,
     return result;
 }
 
+char *sbi_error_str(enum sbierr error)
+{
+    switch (error) {
+    case SBI_SUCCESS:               return "SBI_SUCCESS";
+    case SBI_ERR_FAILED:            return "SBI_ERR_FAILED";
+    case SBI_ERR_NOT_SUPPORTED:     return "SBI_ERR_NOT_SUPPORTED";
+    case SBI_ERR_INVALID_PARAM:     return "SBI_ERR_INVALID_PARAM";
+    case SBI_ERR_DENIED:            return "SBI_ERR_DENIED";
+    case SBI_ERR_INVALID_ADDRESS:   return "SBI_ERR_INVALID_ADDRESS";
+    case SBI_ERR_ALREADY_AVAILABLE: return "SBI_ERR_ALREADY_AVAILABLE";
+    case SBI_ERR_ALREADY_STARTED:   return "SBI_ERR_ALREADY_STARTED";
+    case SBI_ERR_ALREADY_STOPPED:   return "SBI_ERR_ALREADY_STOPPED";
+    case SBI_ERR_NO_SHMEM:          return "SBI_ERR_NO_SHMEM";
+    }
+}
+
 uint32 sbi_get_spec_version()
 {
     return ecall(SBI_EXTENSION_BASE, 0, 0, 0, 0, 0, 0, 0).value;

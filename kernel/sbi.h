@@ -77,6 +77,8 @@ enum sbireason
     SBI_RESET_SYSTEM_FAILURE = 0x1
 };
 
+char *sbi_error_str(enum sbierr error);
+
 uint32 sbi_get_spec_version();
 
 uint64 sbi_get_impl_id();

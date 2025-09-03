@@ -64,6 +64,19 @@ enum sbifeat
     SBI_FEAT_POINTER_MASKING_PMLEN = 0x5,
 };
 
+enum sbiresettype
+{
+    SBI_RESET_SHUTDOWN    = 0x0,
+    SBI_RESET_COLD_REBOOT = 0x1,
+    SBI_RESET_WARM_REBOOT = 0x2,
+};
+
+enum sbireason
+{
+    SBI_RESET_NO_REASON      = 0x0,
+    SBI_RESET_SYSTEM_FAILURE = 0x1
+};
+
 uint32 sbi_get_spec_version();
 
 uint64 sbi_get_impl_id();
@@ -93,5 +106,7 @@ struct sbiret sbi_hart_get_status(uint64 hartid);
 struct sbiret sbi_fwft_set(enum sbifeat feature, uint64 value, uint64 flags);
 
 struct sbiret sbi_fwft_get(enum sbifeat feature);
+
+struct sbiret sbi_system_reset(enum sbiresettype type, enum sbireason reason);
 
 #endif // OS_KERNEL_SBI

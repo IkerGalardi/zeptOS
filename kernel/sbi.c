@@ -116,3 +116,8 @@ struct sbiret sbi_fwft_get(enum sbifeat feature)
 {
     return ecall(SBI_EXTENSION_FWFT, 0, feature, 0, 0, 0, 0, 0);
 }
+
+struct sbiret sbi_system_reset(enum sbiresettype type, enum sbireason reason)
+{
+    return ecall(SBI_EXTENSION_SRST, type, reason, 0, 0, 0, 0, 0);
+}

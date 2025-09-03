@@ -2,10 +2,6 @@
 #include "kernel/types.h"
 #include "user/user.h"
 
-#define BUFFER_SIZE_MBYTES 50
-#define BUFFER_SIZE_BYTES  BUFFER_SIZE_MBYTES * 1024 * 1024
-#define RDTIME_TIMER_FREQ  10000000
-
 static uint64 rdtime()
 {
     uint64 x;
@@ -29,10 +25,30 @@ static char rand_byte()
     return random;
 }
 
+void do_test(uint8 *buffer, uint64 buffer_size_mb, struct AES_ctx *ctx)
+{
+    uint64 buffer_size = buffer_size_mb * 1024 * 1024;
+
+    // Fill the buffer with random data
+    for (int i = 0; i < buffer_size; i++) {
+        buffer[i] = rand_byte();
+    }
+
+    for (int i = 0; i < 10; i++) {
+        uint64 start_cycles = rdtime();
+        AES_CBC_encrypt_buffer(ctx, buffer, buffer_size);
+
+        uint64 end_cycles = rdtime();
+        uint64 cycles = end_cycles - start_cycles;
+
+        printf("ciphertest: %lu MB took %lu cycles\n", buffer_size_mb, cycles);
+    }
+}
+
 int main(int argc, char *argv[])
 {
-    uint8 *buffer = malloc(BUFFER_SIZE_BYTES);
-    for (int i = 0; i < BUFFER_SIZE_BYTES; i++) {
+    uint8 *buffer = malloc(50 * 1024 * 1024);
+    for (int i = 0; i < 50 * 1024 * 1024; i++) {
         buffer[i] = rand_byte();
     }
 
@@ -49,14 +65,7 @@ int main(int argc, char *argv[])
     struct AES_ctx ctx;
     AES_init_ctx_iv(&ctx, aes_key, aes_iv);
 
-    for (int i = 0; i < 50; i++) {
-        uint64 start_cycles = rdtime();
-
-        AES_CBC_encrypt_buffer(&ctx, buffer, BUFFER_SIZE_BYTES);
-
-        uint64 end_cycles = rdtime();
-        uint64 cycles = end_cycles - start_cycles;
-
-        printf("ciphertest: test %d took %lu\n", i, cycles);
-    }
+    do_test(buffer, 1, &ctx);
+    do_test(buffer, 25, &ctx);
+    do_test(buffer, 50, &ctx);
 }

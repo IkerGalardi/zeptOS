@@ -68,7 +68,8 @@ OBJS = kernel/entry.o \
        kernel/virtio_disk.o \
        kernel/sbi.o \
        kernel/dtb.o \
-       kernel/globals.o
+       kernel/globals.o \
+       kernel/shutdown.o
 
 CFLAGS  = -Wall -Werror -O0 -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS += -MD -mcmodel=medany -fno-common -nostdlib -mno-relax
@@ -139,7 +140,8 @@ UPROGS= user/_cat \
         user/_wc \
         user/_zombie \
         user/_ciphertest \
-        user/_lptest
+        user/_lptest \
+        user/_shutdown
 
 
 ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)

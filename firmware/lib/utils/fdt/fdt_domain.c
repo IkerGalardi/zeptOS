@@ -289,8 +289,10 @@ static int __fdt_parse_region(const void *fdt, int domain_offset,
 		return SBI_EINVAL;
 	order = val32;
 
+	flags = region_access & (SBI_DOMAIN_MEMREGION_ACCESS_MASK
+				| SBI_DOMAIN_MEMREGION_ENF_PERMISSIONS);
+
 	/* Read "mmio" DT property */
-	flags = region_access & SBI_DOMAIN_MEMREGION_ACCESS_MASK;
 	if (fdt_get_property(fdt, region_offset, "mmio", NULL))
 		flags |= SBI_DOMAIN_MEMREGION_MMIO;
 
@@ -471,7 +473,7 @@ static int __fdt_parse_domain(const void *fdt, int domain_offset, void *opaque)
 		if (err)
 			continue;
 
-		if (SBI_HARTMASK_MAX_BITS <= val32)
+		if (SBI_HARTMASK_MAX_BITS <= sbi_hartid_to_hartindex(val32))
 			continue;
 
 		if (!fdt_node_is_enabled(fdt, cpu_offset))

@@ -11,82 +11,32 @@
 #include <libfdt.h>
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_heap.h>
-#include <sbi/sbi_mpxy.h>
 #include <sbi_utils/fdt/fdt_helper.h>
-#include <sbi_utils/mpxy/fdt_mpxy.h>
-#include <sbi_utils/mailbox/fdt_mailbox.h>
-#include <sbi_utils/mailbox/rpmi_msgprot.h>
+#include <sbi_utils/mpxy/fdt_mpxy_rpmi_mbox.h>
 #include <sbi/sbi_console.h>
-
-#define RPMI_MAJOR_VER		(1)
-#define RPMI_MINOR_VER		(0)
-
-/** Convert the mpxy attribute ID to attribute array index */
-#define attr_id2index(attr_id)	(attr_id - SBI_MPXY_ATTR_MSGPROTO_ATTR_START)
-
-enum mpxy_msgprot_rpmi_attr_id {
-	MPXY_MSGPROT_RPMI_ATTR_SERVICEGROUP_ID = SBI_MPXY_ATTR_MSGPROTO_ATTR_START,
-	MPXY_MSGPROT_RPMI_ATTR_SERVICEGROUP_VERSION,
-	MPXY_MSGPROT_RPMI_ATTR_MAX_ID,
-};
-
-/**
- * MPXY message protocol attributes for RPMI
- * Order of attribute fields must follow the
- * attribute IDs in `enum mpxy_msgprot_rpmi_attr_id`
- */
-struct mpxy_rpmi_channel_attrs {
-	u32 servicegrp_id;
-	u32 servicegrp_ver;
-};
-
-/* RPMI mbox data per service group */
-struct mpxy_mbox_data {
-	u32 servicegrp_id;
-	u32 num_services;
-	u32 notifications_support;
-	void *priv_data;
-};
-
-/* RPMI service data per service group */
-struct rpmi_service_data {
-	u8 id;
-	u32 min_tx_len;
-	u32 max_tx_len;
-	u32 min_rx_len;
-	u32 max_rx_len;
-};
 
 /**
  * MPXY mbox instance per MPXY channel. This ties
  * an MPXY channel with an RPMI Service group.
  */
-struct mpxy_mbox {
+struct mpxy_rpmi_mbox {
 	struct mbox_chan *chan;
-	struct mpxy_mbox_data *mbox_data;
+	const struct mpxy_rpmi_mbox_data *mbox_data;
 	struct mpxy_rpmi_channel_attrs msgprot_attrs;
 	struct sbi_mpxy_channel channel;
+	void *group_context;
 };
-
-/** Make sure all attributes are packed for direct memcpy */
-#define assert_field_offset(field, attr_offset)				\
-	_Static_assert(							\
-		((offsetof(struct mpxy_rpmi_channel_attrs, field)) /	\
-		 sizeof(u32)) == (attr_offset - SBI_MPXY_ATTR_MSGPROTO_ATTR_START),\
-		"field " #field						\
-		" from struct mpxy_rpmi_channel_attrs invalid offset, expected " #attr_offset)
-
-assert_field_offset(servicegrp_id, MPXY_MSGPROT_RPMI_ATTR_SERVICEGROUP_ID);
 
 /**
  * Discover the RPMI service data using message_id
  * MPXY message_id == RPMI service_id
  */
-static struct rpmi_service_data *mpxy_find_rpmi_srvid(u32 message_id,
-					struct mpxy_mbox_data *mbox_data)
+static const struct mpxy_rpmi_service_data *mpxy_find_rpmi_srvid(u32 message_id,
+					const struct mpxy_rpmi_mbox_data *mbox_data)
 {
+	const struct mpxy_rpmi_service_data *srv = mbox_data->service_data;
 	int mid = 0;
-	struct rpmi_service_data *srv = mbox_data->priv_data;
+
 	for (mid = 0; srv[mid].id < mbox_data->num_services; mid++) {
 		if (srv[mid].id == (u8)message_id)
 			return &srv[mid];
@@ -107,13 +57,10 @@ static int mpxy_mbox_read_attributes(struct sbi_mpxy_channel *channel,
 				     u32 *outmem, u32 base_attr_id,
 				     u32 attr_count)
 {
-	u32 end_id;
-	struct mpxy_mbox *rmb =
-		container_of(channel, struct mpxy_mbox, channel);
-
+	struct mpxy_rpmi_mbox *rmb =
+		container_of(channel, struct mpxy_rpmi_mbox, channel);
 	u32 *attr_array = (u32 *)&rmb->msgprot_attrs;
-
-	end_id = base_attr_id + attr_count - 1;
+	u32 end_id = base_attr_id + attr_count - 1;
 
 	if (end_id >= MPXY_MSGPROT_RPMI_ATTR_MAX_ID)
 		return SBI_EBAD_RANGE;
@@ -159,12 +106,11 @@ static int mpxy_mbox_write_attributes(struct sbi_mpxy_channel *channel,
 				     u32 *outmem, u32 base_attr_id,
 				     u32 attr_count)
 {
+	struct mpxy_rpmi_mbox *rmb =
+		container_of(channel, struct mpxy_rpmi_mbox, channel);
+	u32 end_id = base_attr_id + attr_count - 1;
+	u32 attr_val, idx;
 	int ret, mem_idx;
-	u32 end_id, attr_val, idx;
-	struct mpxy_mbox *rmb =
-		container_of(channel, struct mpxy_mbox, channel);
-
-	end_id = base_attr_id + attr_count - 1;
 
 	if (end_id >= MPXY_MSGPROT_RPMI_ATTR_MAX_ID)
 		return SBI_EBAD_RANGE;
@@ -191,14 +137,16 @@ static int __mpxy_mbox_send_message(struct sbi_mpxy_channel *channel,
 				  void *rx, u32 rx_max_len,
 				  unsigned long *ack_len)
 {
-	int ret;
-	u32 rx_len = 0;
-	struct mbox_xfer xfer;
+	struct mpxy_rpmi_mbox *rmb =
+		container_of(channel, struct mpxy_rpmi_mbox, channel);
+	const struct mpxy_rpmi_mbox_data *data = rmb->mbox_data;
+	const struct mpxy_rpmi_service_data *srv =
+		mpxy_find_rpmi_srvid(message_id, data);
 	struct rpmi_message_args args = {0};
-	struct mpxy_mbox *rmb =
-		container_of(channel, struct mpxy_mbox, channel);
-	struct rpmi_service_data *srv =
-			mpxy_find_rpmi_srvid(message_id, rmb->mbox_data);
+	struct mbox_xfer xfer;
+	u32 rx_len = 0;
+	int ret;
+
 	if (!srv)
 		return SBI_ENOTSUPP;
 
@@ -233,7 +181,10 @@ static int __mpxy_mbox_send_message(struct sbi_mpxy_channel *channel,
 				  tx, tx_len, RPMI_DEF_TX_TIMEOUT);
 	}
 
-	ret = mbox_chan_xfer(rmb->chan, &xfer);
+	if (data->xfer_group)
+		ret = data->xfer_group(rmb->group_context, rmb->chan, &xfer);
+	else
+		ret = mbox_chan_xfer(rmb->chan, &xfer);
 	if (ret)
 		return ret;
 
@@ -259,24 +210,17 @@ static int mpxy_mbox_send_message_withoutresp(struct sbi_mpxy_channel *channel,
 				 NULL, 0, NULL);
 }
 
-static int mpxy_mbox_get_notifications(struct sbi_mpxy_channel *channel,
-				       void *eventsbuf, u32 bufsize,
-				       unsigned long *events_len)
+int mpxy_rpmi_mbox_init(const void *fdt, int nodeoff, const struct fdt_match *match)
 {
-	return SBI_ENOTSUPP;
-}
-
-static int mpxy_mbox_init(const void *fdt, int nodeoff,
-			  const struct fdt_match *match)
-{
-	int rc, len;
-	const fdt32_t *val;
-	u32 channel_id;
-	struct mpxy_mbox *rmb;
+	u32 channel_id, servicegrp_ver, pro_ver, max_data_len, tx_tout, rx_tout;
+	u32 impl_id, impl_ver;
+	const struct mpxy_rpmi_mbox_data *data = match->data;
+	struct mpxy_rpmi_mbox *rmb;
 	struct mbox_chan *chan;
-	const struct mpxy_mbox_data *data = match->data;
+	const fdt32_t *val;
+	int rc, len;
 
-	/* Allocate context for RPXY mbox client */
+	/* Allocate context for MPXY mbox client */
 	rmb = sbi_zalloc(sizeof(*rmb));
 	if (!rmb)
 		return SBI_ENOMEM;
@@ -287,16 +231,57 @@ static int mpxy_mbox_init(const void *fdt, int nodeoff,
 	 */
 	rc = fdt_mailbox_request_chan(fdt, nodeoff, 0, &chan);
 	if (rc) {
-		sbi_free(rmb);
-		return SBI_ENODEV;
+		rc = SBI_ENODEV;
+		goto fail_free_client;
 	}
 
 	/* Match channel service group id */
 	if (data->servicegrp_id != chan->chan_args[0]) {
-		mbox_controller_free_chan(chan);
-		sbi_free(rmb);
-		return SBI_EINVAL;
+		rc = SBI_EINVAL;
+		goto fail_free_chan;
 	}
+
+	/* Get channel protocol version */
+	rc = mbox_chan_get_attribute(chan, RPMI_CHANNEL_ATTR_PROTOCOL_VERSION,
+				     &pro_ver);
+	if (rc)
+		goto fail_free_chan;
+
+	/* Get channel maximum data length */
+	rc = mbox_chan_get_attribute(chan, RPMI_CHANNEL_ATTR_MAX_DATA_LEN,
+				     &max_data_len);
+	if (rc)
+		goto fail_free_chan;
+
+	/* Get channel Tx timeout */
+	rc = mbox_chan_get_attribute(chan, RPMI_CHANNEL_ATTR_TX_TIMEOUT,
+				     &tx_tout);
+	if (rc)
+		goto fail_free_chan;
+
+	/* Get channel Rx timeout */
+	rc = mbox_chan_get_attribute(chan, RPMI_CHANNEL_ATTR_RX_TIMEOUT,
+				     &rx_tout);
+	if (rc)
+		goto fail_free_chan;
+
+	/* Get channel service group version */
+	rc = mbox_chan_get_attribute(chan, RPMI_CHANNEL_ATTR_SERVICEGROUP_VERSION,
+				     &servicegrp_ver);
+	if (rc)
+		goto fail_free_chan;
+
+	/* Get channel implementation id */
+	rc = mbox_chan_get_attribute(chan, RPMI_CHANNEL_ATTR_IMPL_ID,
+				     &impl_id);
+	if (rc)
+		goto fail_free_chan;
+
+	/* Get channel implementation version */
+	rc = mbox_chan_get_attribute(chan, RPMI_CHANNEL_ATTR_IMPL_VERSION,
+				     &impl_ver);
+	if (rc)
+		goto fail_free_chan;
 
 	/*
 	 * The "riscv,sbi-mpxy-channel-id" DT property is mandatory
@@ -304,12 +289,11 @@ static int mpxy_mbox_init(const void *fdt, int nodeoff,
 	 * present then try other drivers.
 	 */
 	val = fdt_getprop(fdt, nodeoff, "riscv,sbi-mpxy-channel-id", &len);
-	if (len > 0 && val)
+	if (len > 0 && val) {
 		channel_id = fdt32_to_cpu(*val);
-	else {
-		mbox_controller_free_chan(chan);
-		sbi_free(rmb);
-		return SBI_ENODEV;
+	} else {
+		rc = SBI_ENODEV;
+		goto fail_free_chan;
 	}
 
 	/* Setup MPXY mbox client */
@@ -324,120 +308,53 @@ static int mpxy_mbox_init(const void *fdt, int nodeoff,
 					mpxy_mbox_send_message_withresp;
 	rmb->channel.send_message_without_response =
 					mpxy_mbox_send_message_withoutresp;
-	/* Callback to get RPMI notifications */
-	rmb->channel.get_notification_events = mpxy_mbox_get_notifications;
-
-	/* No callback to switch events state data */
-	rmb->channel.switch_eventsstate = NULL;
 
 	/* RPMI Message Protocol ID */
 	rmb->channel.attrs.msg_proto_id = SBI_MPXY_MSGPROTO_RPMI_ID;
 	/* RPMI Message Protocol Version */
-	rmb->channel.attrs.msg_proto_version =
-		SBI_MPXY_MSGPROTO_VERSION(RPMI_MAJOR_VER, RPMI_MINOR_VER);
+	rmb->channel.attrs.msg_proto_version = pro_ver;
 
-	/* RPMI supported max message data length(bytes), same for
-	 * all service groups */
-	rmb->channel.attrs.msg_data_maxlen =
-					RPMI_MSG_DATA_SIZE(RPMI_SLOT_SIZE_MIN);
-	/* RPMI message send timeout(milliseconds)
-	 * same for all service groups */
-	rmb->channel.attrs.msg_send_timeout = RPMI_DEF_TX_TIMEOUT;
-	rmb->channel.attrs.msg_completion_timeout =
-				RPMI_DEF_TX_TIMEOUT + RPMI_DEF_RX_TIMEOUT;
+	/*
+	 * RPMI supported max message data length(bytes), same for
+	 * all service groups
+	 */
+	rmb->channel.attrs.msg_data_maxlen = max_data_len;
+	/*
+	 * RPMI message send timeout(milliseconds)
+	 * same for all service groups
+	 */
+	rmb->channel.attrs.msg_send_timeout = tx_tout;
+	rmb->channel.attrs.msg_completion_timeout = tx_tout + rx_tout;
 
-	/* RPMI message protocol attributes */
+	/* RPMI service group attributes */
 	rmb->msgprot_attrs.servicegrp_id = data->servicegrp_id;
-	rmb->msgprot_attrs.servicegrp_ver =
-			SBI_MPXY_MSGPROTO_VERSION(RPMI_MAJOR_VER, RPMI_MINOR_VER);
+	rmb->msgprot_attrs.servicegrp_ver = servicegrp_ver;
+	rmb->msgprot_attrs.impl_id = impl_id;
+	rmb->msgprot_attrs.impl_ver = impl_ver;
 
-	rmb->mbox_data = (struct mpxy_mbox_data *)data;
+	rmb->mbox_data = data;
 	rmb->chan = chan;
 
-	/* Register RPXY service group */
+	/* Setup RPMI service group context */
+	if (data->setup_group) {
+		rc = data->setup_group(&rmb->group_context, chan, data);
+		if (rc)
+			goto fail_free_chan;
+	}
+
+	/* Register RPMI service group */
 	rc = sbi_mpxy_register_channel(&rmb->channel);
 	if (rc) {
-		mbox_controller_free_chan(chan);
-		sbi_free(rmb);
-		return rc;
+		if (data->cleanup_group)
+			data->cleanup_group(rmb->group_context);
+		goto fail_free_chan;
 	}
 
 	return SBI_OK;
+
+fail_free_chan:
+	mbox_controller_free_chan(chan);
+fail_free_client:
+	sbi_free(rmb);
+	return rc;
 }
-
-static struct rpmi_service_data clock_services[] = {
-{
-	.id = RPMI_CLOCK_SRV_ENABLE_NOTIFICATION,
-	.min_tx_len = sizeof(struct rpmi_enable_notification_req),
-	.max_tx_len = sizeof(struct rpmi_enable_notification_req),
-	.min_rx_len = sizeof(struct rpmi_enable_notification_resp),
-	.max_rx_len = sizeof(struct rpmi_enable_notification_resp),
-},
-{
-	.id = RPMI_CLOCK_SRV_GET_NUM_CLOCKS,
-	.min_tx_len = 0,
-	.max_tx_len = 0,
-	.min_rx_len = sizeof(struct rpmi_clock_get_num_clocks_resp),
-	.max_rx_len = sizeof(struct rpmi_clock_get_num_clocks_resp),
-},
-{
-	.id = RPMI_CLOCK_SRV_GET_ATTRIBUTES,
-	.min_tx_len = sizeof(struct rpmi_clock_get_attributes_req),
-	.max_tx_len = sizeof(struct rpmi_clock_get_attributes_req),
-	.min_rx_len = sizeof(struct rpmi_clock_get_attributes_resp),
-	.max_rx_len = sizeof(struct rpmi_clock_get_attributes_resp),
-},
-{
-	.id = RPMI_CLOCK_SRV_GET_SUPPORTED_RATES,
-	.min_tx_len = sizeof(struct rpmi_clock_get_supported_rates_req),
-	.max_tx_len = sizeof(struct rpmi_clock_get_supported_rates_req),
-	.min_rx_len = sizeof(struct rpmi_clock_get_supported_rates_resp),
-	.max_rx_len = -1U,
-},
-{
-	.id = RPMI_CLOCK_SRV_SET_CONFIG,
-	.min_tx_len = sizeof(struct rpmi_clock_set_config_req),
-	.max_tx_len = sizeof(struct rpmi_clock_set_config_req),
-	.min_rx_len = sizeof(struct rpmi_clock_set_config_resp),
-	.max_rx_len = sizeof(struct rpmi_clock_set_config_resp),
-},
-{
-	.id = RPMI_CLOCK_SRV_GET_CONFIG,
-	.min_tx_len = sizeof(struct rpmi_clock_get_config_req),
-	.max_tx_len = sizeof(struct rpmi_clock_get_config_req),
-	.min_rx_len = sizeof(struct rpmi_clock_get_config_resp),
-	.max_rx_len = sizeof(struct rpmi_clock_get_config_resp),
-},
-{
-	.id = RPMI_CLOCK_SRV_SET_RATE,
-	.min_tx_len = sizeof(struct rpmi_clock_set_rate_req),
-	.max_tx_len = sizeof(struct rpmi_clock_set_rate_req),
-	.min_rx_len = sizeof(struct rpmi_clock_set_rate_resp),
-	.max_rx_len = sizeof(struct rpmi_clock_set_rate_resp),
-},
-{
-	.id = RPMI_CLOCK_SRV_GET_RATE,
-	.min_tx_len = sizeof(struct rpmi_clock_get_rate_req),
-	.max_tx_len = sizeof(struct rpmi_clock_get_rate_req),
-	.min_rx_len = sizeof(struct rpmi_clock_get_rate_resp),
-	.max_rx_len = sizeof(struct rpmi_clock_get_rate_resp),
-},
-};
-
-static struct mpxy_mbox_data clock_data = {
-	.servicegrp_id = RPMI_SRVGRP_CLOCK,
-	.num_services = RPMI_CLOCK_SRV_MAX_COUNT,
-	.notifications_support = 1,
-	.priv_data = clock_services,
-};
-
-static const struct fdt_match mpxy_mbox_match[] = {
-	{ .compatible = "riscv,rpmi-mpxy-clock", .data = &clock_data },
-	{ },
-};
-
-struct fdt_driver fdt_mpxy_rpmi_mbox = {
-	.match_table = mpxy_mbox_match,
-	.init = mpxy_mbox_init,
-	.experimental = true,
-};

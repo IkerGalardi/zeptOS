@@ -33,48 +33,6 @@
 #define DEFAULT_SHAKTI_UART_FREQ		50000000
 #define DEFAULT_SHAKTI_UART_BAUD		115200
 
-const struct fdt_match *fdt_match_node(const void *fdt, int nodeoff,
-				       const struct fdt_match *match_table)
-{
-	int ret;
-
-	if (!fdt || nodeoff < 0 || !match_table)
-		return NULL;
-
-	while (match_table->compatible) {
-		ret = fdt_node_check_compatible(fdt, nodeoff,
-						match_table->compatible);
-		if (!ret)
-			return match_table;
-		match_table++;
-	}
-
-	return NULL;
-}
-
-int fdt_find_match(const void *fdt, int startoff,
-		   const struct fdt_match *match_table,
-		   const struct fdt_match **out_match)
-{
-	int nodeoff;
-
-	if (!fdt || !match_table)
-		return SBI_ENODEV;
-
-	while (match_table->compatible) {
-		nodeoff = fdt_node_offset_by_compatible(fdt, startoff,
-						match_table->compatible);
-		if (nodeoff >= 0) {
-			if (out_match)
-				*out_match = match_table;
-			return nodeoff;
-		}
-		match_table++;
-	}
-
-	return SBI_ENODEV;
-}
-
 int fdt_parse_phandle_with_args(const void *fdt, int nodeoff,
 				const char *prop, const char *cells_prop,
 				int index, struct fdt_phandle_args *out_args)
@@ -285,6 +243,30 @@ int fdt_parse_hart_id(const void *fdt, int cpu_offset, u32 *hartid)
 	if (hartid)
 		*hartid = fdt32_to_cpu(*val);
 
+	return 0;
+}
+
+int fdt_parse_cbom_block_size(const void *fdt, int cpu_offset, unsigned long *cbom_block_size)
+{
+	int len;
+	const void *prop;
+	const fdt32_t *val;
+
+	if (!fdt || cpu_offset < 0)
+		return SBI_EINVAL;
+
+	prop = fdt_getprop(fdt, cpu_offset, "device_type", &len);
+	if (!prop || !len)
+		return SBI_EINVAL;
+	if (strncmp (prop, "cpu", strlen ("cpu")))
+		return SBI_EINVAL;
+
+	val = fdt_getprop(fdt, cpu_offset, "riscv,cbom-block-size", &len);
+	if (!val || len < sizeof(fdt32_t))
+		return SBI_EINVAL;
+
+	if (cbom_block_size)
+		*cbom_block_size = fdt32_to_cpu(*val);
 	return 0;
 }
 
@@ -625,19 +607,64 @@ int fdt_parse_xlnx_uartlite_node(const void *fdt, int nodeoffset,
 	return fdt_parse_uart_node_common(fdt, nodeoffset, uart, 0, 0);
 }
 
+static int fdt_aplic_find_imsic_node(const void *fdt, int nodeoff,
+				     struct imsic_data *imsic, bool mmode)
+{
+	const fdt32_t *val;
+	int i, len, noff, rc;
+
+	val = fdt_getprop(fdt, nodeoff, "msi-parent", &len);
+	if (val && len >= sizeof(fdt32_t)) {
+		noff = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*val));
+		if (noff < 0)
+			return noff;
+
+		rc = fdt_parse_imsic_node(fdt, noff, imsic);
+		if (rc)
+			return rc;
+
+		rc = imsic_data_check(imsic);
+		if (rc)
+			return rc;
+
+		if (imsic->targets_mmode == mmode) {
+			return 0;
+		}
+	} else {
+		return SBI_ENODEV;
+	}
+
+	val = fdt_getprop(fdt, nodeoff, "riscv,children", &len);
+	if (!val || len < sizeof(fdt32_t))
+		return SBI_ENODEV;
+
+	len /= sizeof(fdt32_t);
+
+	for (i = 0; i < len; i++) {
+		noff = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(val[i]));
+		if (noff < 0)
+			return noff;
+
+		rc = fdt_aplic_find_imsic_node(fdt, noff, imsic, mmode);
+		if (!rc)
+			break;
+	}
+
+	return rc;
+}
+
 int fdt_parse_aplic_node(const void *fdt, int nodeoff, struct aplic_data *aplic)
 {
 	bool child_found;
 	const fdt32_t *val;
 	const fdt32_t *del;
-	struct imsic_data imsic;
-	int i, j, d, dcnt, len, noff, rc;
+	struct imsic_data imsic = { 0 };
+	int i, j, d, dcnt, len, rc;
 	uint64_t reg_addr, reg_size;
 	struct aplic_delegate_data *deleg;
 
 	if (nodeoff < 0 || !aplic || !fdt)
 		return SBI_ENODEV;
-	memset(aplic, 0, sizeof(*aplic));
 
 	rc = fdt_get_node_addr_size(fdt, nodeoff, 0, &reg_addr, &reg_size);
 	if (rc < 0 || !reg_addr || !reg_size)
@@ -659,78 +686,34 @@ int fdt_parse_aplic_node(const void *fdt, int nodeoff, struct aplic_data *aplic)
 			}
 		}
 		aplic->num_idc = len / 2;
-		goto aplic_msi_parent_done;
 	}
 
-	val = fdt_getprop(fdt, nodeoff, "msi-parent", &len);
-	if (val && len >= sizeof(fdt32_t)) {
-		noff = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*val));
-		if (noff < 0)
-			return noff;
-
-		rc = fdt_parse_imsic_node(fdt, noff, &imsic);
-		if (rc)
-			return rc;
-
-		rc = imsic_data_check(&imsic);
-		if (rc)
-			return rc;
-
-		aplic->targets_mmode = imsic.targets_mmode;
-
-		if (imsic.targets_mmode) {
-			aplic->has_msicfg_mmode = true;
-			aplic->msicfg_mmode.lhxs = imsic.guest_index_bits;
-			aplic->msicfg_mmode.lhxw = imsic.hart_index_bits;
-			aplic->msicfg_mmode.hhxw = imsic.group_index_bits;
-			aplic->msicfg_mmode.hhxs = imsic.group_index_shift;
-			if (aplic->msicfg_mmode.hhxs <
-					(2 * IMSIC_MMIO_PAGE_SHIFT))
-				return SBI_EINVAL;
-			aplic->msicfg_mmode.hhxs -= 24;
-			aplic->msicfg_mmode.base_addr = imsic.regs[0].addr;
-		} else {
-			goto aplic_msi_parent_done;
-		}
-
-		val = fdt_getprop(fdt, nodeoff, "riscv,children", &len);
-		if (!val || len < sizeof(fdt32_t))
-			goto aplic_msi_parent_done;
-
-		noff = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*val));
-		if (noff < 0)
-			return noff;
-
-		val = fdt_getprop(fdt, noff, "msi-parent", &len);
-		if (!val || len < sizeof(fdt32_t))
-			goto aplic_msi_parent_done;
-
-		noff = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*val));
-		if (noff < 0)
-			return noff;
-
-		rc = fdt_parse_imsic_node(fdt, noff, &imsic);
-		if (rc)
-			return rc;
-
-		rc = imsic_data_check(&imsic);
-		if (rc)
-			return rc;
-
-		if (!imsic.targets_mmode) {
-			aplic->has_msicfg_smode = true;
-			aplic->msicfg_smode.lhxs = imsic.guest_index_bits;
-			aplic->msicfg_smode.lhxw = imsic.hart_index_bits;
-			aplic->msicfg_smode.hhxw = imsic.group_index_bits;
-			aplic->msicfg_smode.hhxs = imsic.group_index_shift;
-			if (aplic->msicfg_smode.hhxs <
-					(2 * IMSIC_MMIO_PAGE_SHIFT))
-				return SBI_EINVAL;
-			aplic->msicfg_smode.hhxs -= 24;
-			aplic->msicfg_smode.base_addr = imsic.regs[0].addr;
-		}
+	rc = fdt_aplic_find_imsic_node(fdt, nodeoff, &imsic, true);
+	if (!rc) {
+		aplic->targets_mmode = true;
+		aplic->has_msicfg_mmode = true;
+		aplic->msicfg_mmode.lhxs = imsic.guest_index_bits;
+		aplic->msicfg_mmode.lhxw = imsic.hart_index_bits;
+		aplic->msicfg_mmode.hhxw = imsic.group_index_bits;
+		aplic->msicfg_mmode.hhxs = imsic.group_index_shift;
+		if (aplic->msicfg_mmode.hhxs < (2 * IMSIC_MMIO_PAGE_SHIFT))
+			return SBI_EINVAL;
+		aplic->msicfg_mmode.hhxs -= 24;
+		aplic->msicfg_mmode.base_addr = imsic.regs[0].addr;
 	}
-aplic_msi_parent_done:
+
+	rc = fdt_aplic_find_imsic_node(fdt, nodeoff, &imsic, false);
+	if (!rc) {
+		aplic->has_msicfg_smode = true;
+		aplic->msicfg_smode.lhxs = imsic.guest_index_bits;
+		aplic->msicfg_smode.lhxw = imsic.hart_index_bits;
+		aplic->msicfg_smode.hhxw = imsic.group_index_bits;
+		aplic->msicfg_smode.hhxs = imsic.group_index_shift;
+		if (aplic->msicfg_smode.hhxs < (2 * IMSIC_MMIO_PAGE_SHIFT))
+			return SBI_EINVAL;
+		aplic->msicfg_smode.hhxs -= 24;
+		aplic->msicfg_smode.base_addr = imsic.regs[0].addr;
+	}
 
 	for (d = 0; d < APLIC_MAX_DELEGATE; d++) {
 		deleg = &aplic->delegate[d];
@@ -986,7 +969,7 @@ int fdt_parse_aclint_node(const void *fdt, int nodeoffset,
 {
 	const fdt32_t *val;
 	int i, rc, count, cpu_offset, cpu_intc_offset;
-	u32 phandle, hwirq, hartid, first_hartid, last_hartid, hart_count;
+	u32 phandle, hwirq, hartid, first_hartid, last_hartid;
 	u32 match_hwirq = (for_timer) ? IRQ_M_TIMER : IRQ_M_SOFT;
 
 	if (nodeoffset < 0 || !fdt ||
@@ -1015,7 +998,7 @@ int fdt_parse_aclint_node(const void *fdt, int nodeoffset,
 	count = count / sizeof(fdt32_t);
 
 	first_hartid = -1U;
-	hart_count = last_hartid = 0;
+	last_hartid = 0;
 	for (i = 0; i < (count / 2); i++) {
 		phandle = fdt32_to_cpu(val[2 * i]);
 		hwirq = fdt32_to_cpu(val[(2 * i) + 1]);
@@ -1032,24 +1015,18 @@ int fdt_parse_aclint_node(const void *fdt, int nodeoffset,
 		if (rc)
 			continue;
 
-		if (SBI_HARTMASK_MAX_BITS <= hartid)
-			continue;
-
 		if (match_hwirq == hwirq) {
 			if (hartid < first_hartid)
 				first_hartid = hartid;
 			if (hartid > last_hartid)
 				last_hartid = hartid;
-			hart_count++;
 		}
 	}
 
 	if ((last_hartid >= first_hartid) && first_hartid != -1U) {
 		*out_first_hartid = first_hartid;
-		count = last_hartid - first_hartid + 1;
-		*out_hart_count = (hart_count < count) ? hart_count : count;
+		*out_hart_count = last_hartid - first_hartid + 1;
 	}
-
 	return 0;
 }
 
@@ -1097,7 +1074,7 @@ int fdt_parse_plmt_node(const void *fdt, int nodeoffset, unsigned long *plmt_bas
 		if (rc)
 			continue;
 
-		if (SBI_HARTMASK_MAX_BITS <= hartid)
+		if (SBI_HARTMASK_MAX_BITS <= sbi_hartid_to_hartindex(hartid))
 			continue;
 
 		if (hwirq == IRQ_M_TIMER)
@@ -1153,7 +1130,7 @@ int fdt_parse_plicsw_node(const void *fdt, int nodeoffset, unsigned long *plicsw
 		if (rc)
 			continue;
 
-		if (SBI_HARTMASK_MAX_BITS <= hartid)
+		if (SBI_HARTMASK_MAX_BITS <= sbi_hartid_to_hartindex(hartid))
 			continue;
 
 		if (hwirq == IRQ_M_SOFT)

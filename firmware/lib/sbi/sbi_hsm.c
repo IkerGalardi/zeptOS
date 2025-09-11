@@ -37,6 +37,8 @@
 
 static const struct sbi_hsm_device *hsm_dev = NULL;
 static unsigned long hart_data_offset;
+static bool hsm_device_has_hart_hotplug(void);
+static int hsm_device_hart_stop(void);
 
 /** Per hart specific data to manage state transition **/
 struct sbi_hsm_data {
@@ -170,6 +172,15 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch)
 
 	/* Wait for state transition requested by sbi_hsm_hart_start() */
 	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING) {
+		/*
+		 * If the hsm_dev is ready and it support the hotplug, we can
+		 * use the hsm stop for more power saving
+		 */
+		if (hsm_device_has_hart_hotplug()) {
+			sbi_revert_entry_count(scratch);
+			hsm_device_hart_stop();
+		}
+
 		wfi();
 	}
 
@@ -238,7 +249,6 @@ static void hsm_device_hart_resume(void)
 
 int sbi_hsm_init(struct sbi_scratch *scratch, bool cold_boot)
 {
-	u32 i;
 	struct sbi_scratch *rscratch;
 	struct sbi_hsm_data *hdata;
 
@@ -248,7 +258,7 @@ int sbi_hsm_init(struct sbi_scratch *scratch, bool cold_boot)
 			return SBI_ENOMEM;
 
 		/* Initialize hart state data for every hart */
-		for (i = 0; i <= sbi_scratch_last_hartindex(); i++) {
+		sbi_for_each_hartindex(i) {
 			rscratch = sbi_hartindex_to_scratch(i);
 			if (!rscratch)
 				continue;

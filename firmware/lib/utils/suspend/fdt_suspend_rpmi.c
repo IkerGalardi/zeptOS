@@ -10,11 +10,11 @@
 #include <libfdt.h>
 #include <sbi/sbi_system.h>
 #include <sbi/riscv_asm.h>
+#include <sbi_utils/fdt/fdt_driver.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/mailbox/fdt_mailbox.h>
 #include <sbi_utils/mailbox/mailbox.h>
 #include <sbi_utils/mailbox/rpmi_mailbox.h>
-#include <sbi_utils/suspend/fdt_suspend.h>
 
 struct rpmi_syssusp {
 	struct mbox_chan *chan;
@@ -132,8 +132,7 @@ static const struct fdt_match rpmi_suspend_match[] = {
 	{},
 };
 
-struct fdt_driver fdt_suspend_rpmi = {
+const struct fdt_driver fdt_suspend_rpmi = {
 	.match_table = rpmi_suspend_match,
 	.init = rpmi_suspend_init,
-	.experimental = true,
 };

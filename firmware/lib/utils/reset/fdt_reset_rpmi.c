@@ -10,8 +10,8 @@
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_console.h>
+#include <sbi_utils/fdt/fdt_driver.h>
 #include <sbi_utils/fdt/fdt_helper.h>
-#include <sbi_utils/reset/fdt_reset.h>
 #include <sbi_utils/mailbox/fdt_mailbox.h>
 #include <sbi_utils/mailbox/rpmi_msgprot.h>
 #include <sbi_utils/mailbox/rpmi_mailbox.h>
@@ -135,8 +135,7 @@ static const struct fdt_match rpmi_reset_match[] = {
 	{},
 };
 
-struct fdt_driver fdt_reset_rpmi = {
+const struct fdt_driver fdt_reset_rpmi = {
 	.match_table = rpmi_reset_match,
 	.init = rpmi_reset_init,
-	.experimental = true,
 };

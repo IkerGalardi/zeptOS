@@ -34,13 +34,6 @@ struct platform_uart_data {
 	unsigned long reg_offset;
 };
 
-const struct fdt_match *fdt_match_node(const void *fdt, int nodeoff,
-				       const struct fdt_match *match_table);
-
-int fdt_find_match(const void *fdt, int startoff,
-		   const struct fdt_match *match_table,
-		   const struct fdt_match **out_match);
-
 int fdt_parse_phandle_with_args(const void *fdt, int nodeoff,
 				const char *prop, const char *cells_prop,
 				int index, struct fdt_phandle_args *out_args);
@@ -57,9 +50,11 @@ int fdt_parse_hart_id(const void *fdt, int cpu_offset, u32 *hartid);
 
 int fdt_parse_max_enabled_hart_id(const void *fdt, u32 *max_hartid);
 
+int fdt_parse_cbom_block_size(const void *fdt, int cpu_offset, unsigned long  *cbom_block_size);
+
 int fdt_parse_timebase_frequency(const void *fdt, unsigned long *freq);
 
-int fdt_parse_isa_extensions(const void *fdt, unsigned int hard_id,
+int fdt_parse_isa_extensions(const void *fdt, unsigned int hartid,
 			     unsigned long *extensions);
 
 int fdt_parse_gaisler_uart_node(const void *fdt, int nodeoffset,

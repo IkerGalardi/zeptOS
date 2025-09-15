@@ -2,8 +2,10 @@ include config.mk
 include check.mk
 
 DEFINES=
-MARCH_LP=
-MARCH_SS=
+MARCH_USER_USER_LP=
+MARCH_USER_USER_SS=
+MARCH_KERNEL_USER_LP=
+MARCH_KERNEL_USER_SS=
 
 ifeq ($(CONFIG_BENCHMARK), enabled)
 	DEFINES+=-DCONFIG_BENCHMARK_ENABLED
@@ -11,7 +13,12 @@ endif
 
 ifeq ($(CONFIG_USER_LANDING_PAD), enabled)
 	DEFINES+=-DCONFIG_USER_LANDING_PAD_ENABLED
-	MARCH_LP=_zicfilp1p0
+	MARCH_USER_USER_LP=_zicfilp1p0
+endif
+
+ifeq ($(CONFIG_KERNEL_LANDING_PAD), enabled)
+	DEFINES+=-DCONFIG_KERNEL_LANDING_PAD_ENABLED
+	MARCH_KERNEL_USER_LP=_zicfilp1p0
 endif
 
 ifeq ($(CONFIG_USER_SHADOW_STACK), software)
@@ -20,10 +27,11 @@ endif
 
 ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)
 	DEFINES+=-DCONFIG_USER_SHADOW_STACK_HARDWARE
-	MARCH_SS=_zicfiss1p0
+	MARCH_USER_USER_SS=_zicfiss1p0
 endif
 
-MARCH=rv64gc$(MARCH_LP)$(MARCH_SS)
+MARCH_USER=rv64gc$(MARCH_USER_USER_LP)$(MARCH_USER_USER_SS)
+MARCH_KERNEL=rv64gc$(MARCH_KERNEL_USER_LP)$(MARCH_KERNEL_USER_SS)
 
 CC=clang --target=riscv64
 AS=clang --target=riscv64
@@ -82,16 +90,18 @@ CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin
 CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc
 CFLAGS += -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-stack-protector
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
-CFLAGS += -I. -menable-experimental-extensions -march=$(MARCH)
+CFLAGS += -I. -menable-experimental-extensions
 CFLAGS += $(DEFINES)
 
-CFLAGS_USER_EXTRA=
+CFLAGS_USER_EXTRA=-march=$(MARCH_USER)
 ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)
-	CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack -fcf-protection=return
+	CFLAGS_USER_EXTRA+=-fsanitize=shadow-call-stack -fcf-protection=return
 endif
 ifeq ($(CONFIG_USER_SHADOW_STACK), software)
-	CFLAGS_USER_EXTRA=-fsanitize=shadow-call-stack
+	CFLAGS_USER_EXTRA+=-fsanitize=shadow-call-stack
 endif
+
+CFLAGS_KERNEL_EXTRA=-march=$(MARCH_KERNEL)
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	@echo "LD      kernel/kernel"
@@ -99,11 +109,11 @@ kernel/kernel: $(OBJS) kernel/kernel.ld
 
 kernel/%.o: kernel/%.S
 	@echo "CC      $^"
-	@ $(CC) -c $(CFLAGS) -o $@ $^
+	@ $(CC) -c $(CFLAGS) $(CFLAGS_KERNEL_EXTRA) -o $@ $^
 
 kernel/%.o: kernel/%.c
 	@echo "CC      $^"
-	@ $(CC) -c $(CFLAGS) -o $@ $^
+	@ $(CC) -c $(CFLAGS) $(CFLAGS_KERNEL_EXTRA) -o $@ $^
 
 tools/mkfs: tools/mkfs.c kernel/fs.h kernel/param.h
 	@echo "CC      tools/mkfs"
@@ -164,7 +174,7 @@ user/_ciphertest: user/ciphertest.o user/aes.o $(ULIB)
 
 user/%.o: user/%.S
 	@echo "CC      $^"
-	@ $(CC) -c $(CFLAGS) -o $@ $^
+	@ $(CC) -c $(CFLAGS) $(CFLAGS_USER_EXTRA) -o $@ $^
 
 user/%.o: user/%.c
 	@echo "CC      $^"

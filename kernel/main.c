@@ -143,6 +143,11 @@ kmain(void *fdt)
     userinit();         // first user process
     printf("kernel(%d): first program initialized\n", cpuid());
 
+#ifdef CONFIG_KERNEL_LANDING_PAD_ENABLED
+    sbi_fwft_set(SBI_FEAT_LANDING_PAD, 1, 0);
+    printf("kernel(%d): kernel landing pads enabled\n", cpuid());
+#endif // CONFIG_KERNEL_LANDING_PAD_ENABLED
+
     if (sbi_probe_extension(SBI_EXTENSION_HSM) != 0) {
         printf("kernel(%d): HSM extension available, starting other cores\n",
                 cpuid());
@@ -200,6 +205,11 @@ void kmain_secondary()
     printf("kernel(%d): traps initialized\n", cpuid());
     plicinithart();     // ask PLIC for device interrupts
     printf("kernel(%d): local interrupt controller initialized\n", cpuid());
+
+#ifdef CONFIG_KERNEL_LANDING_PAD_ENABLED
+    sbi_fwft_set(SBI_FEAT_LANDING_PAD, 1, 0);
+    printf("kernel(%d): kernel landing pads enabled\n", cpuid());
+#endif // CONFIG_KERNEL_LANDING_PAD_ENABLED
 
 #ifdef CONFIG_USER_LANDING_PAD_ENABLED
     uint64 senvcfg_lp = r_senvcfg();

@@ -125,7 +125,7 @@ tools/rvvaddr: tools/rvvaddr.c
 # that disk image changes after first build are persistent until clean.  More
 # details:
 # http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
-.PRECIOUS: user/%.o
+.PRECIOUS: user/%.o bench/%.o
 
 UPROGS= user/_cat \
         user/_echo \

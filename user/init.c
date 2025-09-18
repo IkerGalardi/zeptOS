@@ -12,7 +12,7 @@
 #ifndef CONFIG_BENCHMARK_ENABLED
 char *argv[] = { "sh", 0 };
 #else
-char *argv[] = { "ciphertest", 0 };
+char *argv[] = { "bench", 0 };
 #endif // CONFIG_BENCHMARK_ENABLED
 
 int
@@ -31,7 +31,7 @@ main(void)
 #ifndef CONFIG_BENCHMARK_ENABLED
         printf("init: starting sh\n");
 #else
-        printf("init: starting ciphertest\n");
+        printf("init: starting bench\n");
 #endif //CONFIG_BENCHMARK_ENABLED
         pid = fork();
         if(pid < 0){
@@ -44,8 +44,8 @@ main(void)
             printf("init: exec sh failed\n");
             exit(1);
 #else
-            exec("ciphertest", argv);
-            printf("init: exec ciphertest failed\n");
+            exec("bench", argv);
+            printf("init: exec bench failed\n");
             exit(1);
 #endif // CONFIG_BENCHMARK_ENABLED
         }

@@ -10,6 +10,9 @@ user/*.d
 user/*.asm
 user/*.sym
 user/_*
+bench/*.o
+bench/*.d
+bench/_*
 user/initcode
 user/initcode.out
 user/usys.S

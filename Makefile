@@ -82,7 +82,7 @@ CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin
 CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc
 CFLAGS += -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-stack-protector
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf
-CFLAGS += -I. -menable-experimental-extensions -march=$(MARCH)
+CFLAGS += -I. -menable-experimental-extensions -march=$(MARCH) -Iuser
 CFLAGS += $(DEFINES)
 
 CFLAGS_USER_EXTRA=
@@ -143,7 +143,7 @@ UPROGS= user/_cat \
         user/_grind \
         user/_wc \
         user/_zombie \
-        user/_ciphertest \
+        bench/_ciphertest \
         user/_lptest \
         user/_shutdown
 
@@ -158,13 +158,21 @@ user/usys.S : user/usys.pl
 	@echo "PERL    $^"
 	@ perl user/usys.pl > user/usys.S
 
-user/_ciphertest: user/ciphertest.o user/aes.o $(ULIB)
-	@echo "LD      user/_ciphertest"
+bench/_ciphertest: bench/ciphertest.o bench/aes.o $(ULIB)
+	@echo "LD      bench/_ciphertest"
 	@ $(LD) -nostdlib $(LDFLAGS) -T user/user.ld -o $@ $^
 
 user/%.o: user/%.S
 	@echo "CC      $^"
 	@ $(CC) -c $(CFLAGS) -o $@ $^
+
+bench/%.o: bench/%.c
+	@echo "CC      $^"
+	@ $(CC) -c $(CFLAGS) $(CFLAGS_USER_EXTRA) -o $@ $^
+
+bench/_%: bench/%.o $(ULIB)
+	@echo "LD      $@"
+	@ $(LD) -nostdlib $(LDFLAGS) -T user/user.ld -o $@ $^
 
 user/%.o: user/%.c
 	@echo "CC      $^"

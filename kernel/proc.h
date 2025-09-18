@@ -41,19 +41,19 @@ extern struct cpu cpus[NCPU];
 // return-to-user path via usertrapret() doesn't return through
 // the entire kernel call stack.
 struct trapframe {
-    /*     0 */ uint64 kernel_satp;     // kernel page table
-    /*     8 */ uint64 kernel_sp;         // top of process's kernel stack
-    /*    16 */ uint64 kernel_trap;     // usertrap()
-    /*    24 */ uint64 epc;                     // saved user program counter
-    /*    32 */ uint64 kernel_hartid; // saved kernel tp
-    /*    40 */ uint64 ra;
-    /*    48 */ uint64 sp;
-    /*    56 */ uint64 gp;
-    /*    64 */ uint64 tp;
-    /*    72 */ uint64 t0;
-    /*    80 */ uint64 t1;
-    /*    88 */ uint64 t2;
-    /*    96 */ uint64 s0;
+    /*   0 */ uint64 kernel_satp;     // kernel page table
+    /*   8 */ uint64 kernel_sp;         // top of process's kernel stack
+    /*  16 */ uint64 kernel_trap;     // usertrap()
+    /*  24 */ uint64 epc;                     // saved user program counter
+    /*  32 */ uint64 kernel_hartid; // saved kernel tp
+    /*  40 */ uint64 ra;
+    /*  48 */ uint64 sp;
+    /*  56 */ uint64 gp;
+    /*  64 */ uint64 tp;
+    /*  72 */ uint64 t0;
+    /*  80 */ uint64 t1;
+    /*  88 */ uint64 t2;
+    /*  96 */ uint64 s0;
     /* 104 */ uint64 s1;
     /* 112 */ uint64 a0;
     /* 120 */ uint64 a1;
@@ -78,12 +78,47 @@ struct trapframe {
     /* 272 */ uint64 t5;
     /* 280 */ uint64 t6;
 
+    /* 288 */ uint64 f0;
+    /* 296 */ uint64 f1;
+    /* 304 */ uint64 f2;
+    /* 312 */ uint64 f3;
+    /* 320 */ uint64 f4;
+    /* 328 */ uint64 f5;
+    /* 336 */ uint64 f6;
+    /* 344 */ uint64 f7;
+    /* 352 */ uint64 f8;
+    /* 360 */ uint64 f9;
+    /* 368 */ uint64 f10;
+    /* 376 */ uint64 f11;
+    /* 384 */ uint64 f12;
+    /* 392 */ uint64 f13;
+    /* 400 */ uint64 f14;
+    /* 408 */ uint64 f15;
+    /* 416 */ uint64 f16;
+    /* 424 */ uint64 f17;
+    /* 432 */ uint64 f18;
+    /* 440 */ uint64 f19;
+    /* 448 */ uint64 f20;
+    /* 456 */ uint64 f21;
+    /* 464 */ uint64 f22;
+    /* 472 */ uint64 f23;
+    /* 480 */ uint64 f24;
+    /* 488 */ uint64 f25;
+    /* 496 */ uint64 f26;
+    /* 504 */ uint64 f27;
+    /* 512 */ uint64 f28;
+    /* 520 */ uint64 f29;
+    /* 528 */ uint64 f30;
+    /* 536 */ uint64 f31;
+
+    /* 544 */ uint64 fscr;
+
 #ifdef CONFIG_USER_LANDING_PAD_ENABLED
-    /* 288 */ uint64 pelp;
+    /* 552 */ uint64 pelp;
 #endif // CONFIG_USER_LANDING_PAD_ENABLED
 
 #ifdef CONFIG_USER_SHADOW_STACK_HARDWARE
-    /* 296 */ uint64 ssp;
+    /* 560 */ uint64 ssp;
 #endif // CONFIG_USER_SHADOW_STACK_HARDWARE
 };
 

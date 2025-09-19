@@ -153,7 +153,7 @@ ifeq ($(CONFIG_USER_SHADOW_STACK), hardware)
 	UPROGS+=user/_shadowtest
 endif
 
-ULIB = user/ulib.o user/usys.o user/printf.o user/umalloc.o
+ULIB = user/ulib.o user/usys.o user/printf.o user/umalloc.o user/math.o
 
 user/usys.S : user/usys.pl
 	@echo "PERL    $^"
@@ -161,6 +161,10 @@ user/usys.S : user/usys.pl
 
 bench/_ciphertest: bench/ciphertest.o bench/aes.o $(ULIB)
 	@echo "LD      bench/_ciphertest"
+	@ $(LD) -nostdlib $(LDFLAGS) -T user/user.ld -o $@ $^
+
+bench/_scimark4: bench/FFT.o bench/kernel.o bench/Stopwatch.o bench/Random.o bench/SOR.o bench/SparseCompRow.o bench/array.o bench/MonteCarlo.o bench/LU.o bench/scimark4.o $(ULIB)
+	@echo "LD      bench/_scimark4"
 	@ $(LD) -nostdlib $(LDFLAGS) -T user/user.ld -o $@ $^
 
 user/%.o: user/%.S

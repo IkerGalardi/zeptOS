@@ -1,7 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include "kernel/types.h"
+#include "user/user.h"
 
 #include "Random.h"
 #include "kernel.h"
@@ -44,67 +42,6 @@ int main(int argc, char *argv[])
      Random R = new_Random_seed(RANDOM_SEED);
 
 
-     if (argc > 1) 
-     {
-         int current_arg = 1;
-
-         if (strcmp(argv[1], "-help")==0  ||
-            strcmp(argv[1], "-h") == 0)
-          {
-              fprintf(stderr, "Usage: [-large | -huge #MB] [minimum_time]\n");
-              exit(0);
-          }
-
-         if (strcmp(argv[1], "-large")==0)
-         {
-           FFT_size = LG_FFT_SIZE;
-           SOR_size = LG_SOR_SIZE;
-           Sparse_size_M = LG_SPARSE_SIZE_M;
-           Sparse_size_nz = LG_SPARSE_SIZE_nz;
-           LU_size = LG_LU_SIZE;
-    
-           current_arg++;
-        }
-        else if ((strcmp(argv[1], "-huge")==0) && (argc > 2))
-        {
-           
-           unsigned int huge_cache_size = atoi(argv[2]) * ONE_MB;
-           double dproblem_size = huge_cache_size / sizeof(double);
-           double dsqrt_problem_size = sqrt(dproblem_size);
-
-           unsigned int problem_size = floor(dproblem_size);
-           unsigned int sqrt_problem_size = floor(dsqrt_problem_size);
-
-           huge_flag = 1;
-           
-           if (argc<3)
-           {
-              fprintf(stderr, "Usage: [-large | -huge #MB] [minimum_time]\n");
-              exit(0);
-           }
-           /* FFT_size = pow(2, floor(log2(dproblem_size)+1)); */
-           FFT_size = 1 << ilog2(problem_size);
-           SOR_size = sqrt_problem_size;
-           Sparse_size_M = problem_size / 8;
-           Sparse_size_nz = problem_size;
-           LU_size = sqrt_problem_size;
-
-           current_arg ++;
-           current_arg ++;
-        }
-
-
-
-
-        if (current_arg < argc)
-        {
-          if (atof(argv[current_arg]) > 0.0)
-             min_time = atof(argv[current_arg]);
-        }
-   
-     }
-
-  
  print_banner();
  printf("Using %10.2f seconds min time per kenel.", min_time);
  if (huge_flag)

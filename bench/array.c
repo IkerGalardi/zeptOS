@@ -1,5 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include "kernel/types.h"
+#include "user/user.h"
 #include "array.h"
 
 #ifndef NULL

@@ -145,6 +145,7 @@ UPROGS= user/_cat \
         user/_zombie \
         bench/_ciphertest \
         bench/_bench \
+        bench/_scimark4 \
         user/_lptest \
         user/_shutdown
 

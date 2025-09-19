@@ -1,6 +1,7 @@
 
 
-#include <stdlib.h>
+#include "kernel/types.h"
+#include "user/user.h"
 
 #include "Random.h"
 

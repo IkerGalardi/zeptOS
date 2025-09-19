@@ -1,4 +1,5 @@
-#include <math.h>
+#include "kernel/types.h"
+#include "user/user.h"
 #include "LU.h"
 
 double LU_num_flops(int N)

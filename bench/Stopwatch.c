@@ -52,8 +52,8 @@ void Stopwatch_start(Stopwatch Q)
         Q->last_time = seconds();
     }
 }
-   
-/** 
+
+/**
     Resume timing, after stopping.  (Does not wipe out
         accumulated times.)
 
@@ -63,25 +63,25 @@ void Stopwatch_resume(Stopwatch Q)
 {
     if (!(Q->running))
     {
-        Q-> last_time = seconds(); 
+        Q-> last_time = seconds();
         Q->running = 1;  /*true*/
     }
 }
-   
-void Stopwatch_stop(Stopwatch Q)  
-{ 
-    if (Q->running) 
-    { 
-        Q->total += seconds() - Q->last_time; 
+
+void Stopwatch_stop(Stopwatch Q)
+{
+    if (Q->running)
+    {
+        Q->total += seconds() - Q->last_time;
         Q->running = 0;  /* false */
     }
 }
-  
- 
+
+
 double Stopwatch_read(Stopwatch Q)
-{  
-    
-    if (Q->running) 
+{
+
+    if (Q->running)
     {
         double t = seconds();
         Q->total += t - Q->last_time;
@@ -89,4 +89,3 @@ double Stopwatch_read(Stopwatch Q)
     }
     return Q->total;
 }
-        

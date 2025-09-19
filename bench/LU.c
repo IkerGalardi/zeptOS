@@ -25,7 +25,7 @@ void LU_copy_matrix(int M, int N, double **lu, double **A)
 
 int LU_factor(int M, int N, double **A,  int *pivot)
 {
- 
+
 
     int minMN =  M < N ? M : N;
     int j=0;
@@ -36,7 +36,7 @@ int LU_factor(int M, int N, double **A,  int *pivot)
 
         int jp=j;
         int i;
-        
+
         double t = fabs(A[j][j]);
         for (i=j+1; i<M; i++)
         {
@@ -47,13 +47,13 @@ int LU_factor(int M, int N, double **A,  int *pivot)
                 t = ab;
             }
         }
-        
+
         pivot[j] = jp;
 
         /* jp now has the index of maximum element  */
         /* of column j, below the diagonal          */
 
-        if ( A[jp][j] == 0 )                 
+        if ( A[jp][j] == 0 )
             return 1;       /* factorization failed because of zero pivot */
 
 
@@ -100,4 +100,3 @@ int LU_factor(int M, int N, double **A,  int *pivot)
 
     return 0;
 }
-

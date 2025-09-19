@@ -53,7 +53,7 @@ void Array2D_double_delete(unsigned int M, unsigned int N, double **A)
 }
 
 
-  void Array2D_double_copy(unsigned int M, unsigned int N, double **B, 
+  void Array2D_double_copy(unsigned int M, unsigned int N, double **B,
           double **A)
   {
         unsigned int remainder = N & 3;       /* N mod 4; */

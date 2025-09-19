@@ -17,4 +17,3 @@ void Stopwatch_start(Stopwatch Q);
 void Stopwatch_resume(Stopwatch Q);
 void Stopwatch_stop(Stopwatch Q);
 double Stopwatch_read(Stopwatch Q);
-        

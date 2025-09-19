@@ -4,14 +4,14 @@
 #include "FFT.h"
 #include "SOR.h"
 #include "MonteCarlo.h"
-#include "Random.h" 
-#include "Stopwatch.h"  
+#include "Random.h"
+#include "Stopwatch.h"
 #include "SparseCompRow.h"
 #include "array.h"
 #include "kernel.h"
 
     void kernel_measureFFT(unsigned int N, double mintime, Random R,
-      double *res, double *sum_, unsigned long *num_cycles) 
+      double *res, double *sum_, unsigned long *num_cycles)
     {
         /* initialize FFT data as complex (N real/img pairs) */
 
@@ -123,7 +123,7 @@
     }
 
 
-    void kernel_measureSparseMatMult(unsigned int N, unsigned int nz, 
+    void kernel_measureSparseMatMult(unsigned int N, unsigned int nz,
             double min_time, Random R,
             double *res, double *sum_, unsigned long *num_cycles)
     {
@@ -152,7 +152,7 @@
         //             +**  *   *        +
         //             +* *   *   *      +
         //             +*  *   *    *    +
-        //             +*   *    *    *  + 
+        //             +*   *    *    *  +
         //             +-----------------+
         //
         // (as best reproducible with integer artihmetic)
@@ -163,7 +163,7 @@
         int nr = nz/N;      /* average number of nonzeros per row  */
         int anz = nr *N;    /* _actual_ number of nonzeros         */
 
-            
+
         double *val = RandomVector(anz, R);
         int *col = (int*) malloc(sizeof(int)*nz);
         int *row = (int*) malloc(sizeof(int)*(N+1));
@@ -176,7 +176,7 @@
         for (i=0; i<N; i++)
             y[i] = 0.0;
 
-        row[0] = 0; 
+        row[0] = 0;
         for (r=0; r<N; r++)
         {
             /* initialize elements for row r */
@@ -191,7 +191,7 @@
 
             for (i=0; i<nr; i++)
                 col[rowr+i] = i*step;
-                
+
         }
 
 
@@ -205,7 +205,7 @@
             cycles *= 2;
         }
         /* approx Mflops */
-        result = SparseCompRow_num_flops(N, nz, cycles) / 
+        result = SparseCompRow_num_flops(N, nz, cycles) /
                         Stopwatch_read(Q) * 1.0e-6;
 
         for (i=0; i<N; i++)
@@ -230,10 +230,10 @@
     {
 
         double **A = NULL;
-        double **lu = NULL; 
+        double **lu = NULL;
         int *pivot = NULL;
 
-    
+
 
         Stopwatch Q = new_Stopwatch();
         double result = 0.0;
@@ -287,14 +287,14 @@
         result = LU_num_flops(N) * cycles / Stopwatch_read(Q) * 1.0e-6;
 
         Stopwatch_delete(Q);
-        free(pivot); 
+        free(pivot);
 
         for (i=0; i<N; i++)
           for (j=0; j<N; j++)
             sum += lu[i][j];
         sum /= (N*N);
 
-        Array2D_double_delete(N, N, lu); 
+        Array2D_double_delete(N, N, lu);
         Array2D_double_delete(N, N, A);
 
         *res = result;
@@ -302,4 +302,3 @@
         *num_cycles = cycles;
 
     }
-

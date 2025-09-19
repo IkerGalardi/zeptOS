@@ -45,3 +45,4 @@ void *memcpy(void *, const void *, uint);
 
 // math.c
 double sin(double x);
+double fabs(double x);

@@ -14,3 +14,11 @@ double sin(double x)
     else
         return 16 * t * t - 24 * t + 8;
 }
+
+double fabs(double x)
+{
+    if (x < 0)
+        return -x;
+    else
+        return x;
+}

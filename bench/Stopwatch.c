@@ -1,9 +1,19 @@
-#include <stdlib.h>
 #include "Stopwatch.h"
+#include "kernel/types.h"
+#include "user/user.h"
+
+#define CLOCKS_PER_SEC 10000000
+
+static uint64 clock()
+{
+    uint64 x;
+    asm volatile("csrr %0, time" : "=r" (x) );
+    return x;
+}
 
 double seconds()
 {
-        return ((double) clock()) / (double) CLOCKS_PER_SEC; 
+        return ((double) clock()) / (double) CLOCKS_PER_SEC;
 }
 
 void Stopwtach_reset(Stopwatch Q)

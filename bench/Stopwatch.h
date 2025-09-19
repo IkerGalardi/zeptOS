@@ -1,6 +1,3 @@
-
-#include <time.h>
-
 typedef struct{
     int running;        /* boolean */
     double last_time;

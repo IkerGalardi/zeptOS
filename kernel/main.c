@@ -111,7 +111,7 @@ static void dtbparse(void *fdt)
 void
 kmain(void *fdt)
 {
-    sbi_debug_console_write(20, "\nxv6 kernel booting\n");
+    sbi_debug_console_write(23, "\nzeptOS kernel booting\n");
     dtbparse(fdt);
 
     printfinit();

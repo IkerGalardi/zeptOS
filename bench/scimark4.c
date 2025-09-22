@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 
 
  print_banner();
- printf("Using %10.2f seconds min time per kenel.", min_time);
+ printf("Using %f seconds min time per kenel.", min_time);
  if (huge_flag)
  {
       printf(" Approx. problem size: %d (MB)", atoi(argv[2]));
@@ -53,24 +53,24 @@ int main(int argc, char *argv[])
  /* print out results  */
 
  kernel_measureFFT( FFT_size, min_time, R, &res[1], &sum[1], &num_cycles[1]);
- printf("FFT             Mflops: %8.2f    (N=%d) \n", res[1],
+ printf("FFT             Mflops: %f    (N=%d) \n", res[1],
             FFT_size);
 
  kernel_measureSOR( SOR_size, min_time, R, &res[2], &sum[2], &num_cycles[2]);
- printf("SOR             Mflops: %8.2f    (%d x %d) \n", res[2],
+ printf("SOR             Mflops: %f    (%d x %d) \n", res[2],
             SOR_size, SOR_size);
 
  kernel_measureMonteCarlo(min_time, R, &res[3], &sum[3], &num_cycles[3]);
- printf("MonteCarlo:     Mflops: %8.2f  \n", res[3] );
+ printf("MonteCarlo:     Mflops: %f  \n", res[3] );
 
  kernel_measureSparseMatMult( Sparse_size_M,
           Sparse_size_nz, min_time, R, &res[4], &sum[4], &num_cycles[4]);
-  printf("Sparse matmult  Mflops: %8.2f    (N=%d, nz=%d)  \n",
+  printf("Sparse matmult  Mflops: %f    (N=%d, nz=%d)  \n",
           res[4], Sparse_size_M, Sparse_size_nz);
 
 
  kernel_measureLU( LU_size, min_time, R, &res[5], &sum[5], &num_cycles[5]);
- printf("LU              Mflops: %8.2f    (M=%d, N=%d) \n", res[5],
+ printf("LU              Mflops: %f    (M=%d, N=%d) \n", res[5],
      LU_size, LU_size);
 
 
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
      printf("\n");
      printf("************************************\n");
-     printf("Composite Score:       %8.2f\n" ,res[0]);
+     printf("Composite Score:       %f\n" ,res[0]);
      printf("************************************\n");
      printf("\n");
 
@@ -91,7 +91,6 @@ int main(int argc, char *argv[])
      printf("Sparse MatMult repss:  %ld\n", num_cycles[4]);
      printf("LU reps:               %ld\n", num_cycles[5]);
      printf("\n");
-     printf("checksum:              %20.16e\n" ,sum[0]);
 
      Random_delete(R);
 

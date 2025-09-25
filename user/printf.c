@@ -47,6 +47,16 @@ printptr(int fd, uint64 x) {
         putc(fd, digits[x >> (sizeof(uint64) * 8 - 4)]);
 }
 
+static void
+printdouble(int fd, double x)
+{
+    int int_part = (int)x;
+    printint(fd, int_part, 10, 0);
+    putc(fd, '.');
+    int frac_part = (int)((x - int_part) * 1000);
+    printint(fd, frac_part, 10, 0);
+}
+
 // Print to the given fd. Only understands %d, %x, %p, %s.
 void
 vprintf(int fd, const char *fmt, va_list ap)
@@ -93,6 +103,8 @@ vprintf(int fd, const char *fmt, va_list ap)
                 i += 2;
             } else if(c0 == 'p'){
                 printptr(fd, va_arg(ap, uint64));
+            } else if(c0 == 'f') {
+                printdouble(fd, va_arg(ap, double));
             } else if(c0 == 's'){
                 if((s = va_arg(ap, char*)) == 0)
                     s = "(null)";

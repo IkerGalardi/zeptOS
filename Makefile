@@ -212,6 +212,8 @@ qemu-gdb: kernel/kernel fs.img
 	qemu-system-riscv64 $(QEMUOPTS) -S -s
 
 clean:
+	@ rm -f bench/*.o
+	@ rm -f bench/*.d
 	@ rm -f kernel/*.o
 	@ rm -f kernel/*.d
 	@ rm -f user/*.o

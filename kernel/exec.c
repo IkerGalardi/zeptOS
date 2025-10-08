@@ -171,7 +171,7 @@ static uint min_uint(uint a, uint b)
 static int
 loadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz)
 {
-    uint i, n, forstart = 0;
+    uint i, n = 0;
     uint64 pa;
 
     if (va % PGSIZE != 0) {
@@ -189,11 +189,9 @@ loadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz
         if (sz <= pgleft) {
             return 0;
         }
-
-        forstart = PGSIZE;
     }
 
-    for(i = forstart; i < sz; i += PGSIZE){
+    for(i = n; i < sz; i += PGSIZE){
         pa = walkaddr(pagetable, va + i);
         if(pa == 0)
             panic("loadseg: address should exist");

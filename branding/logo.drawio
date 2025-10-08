@@ -1,0 +1,29 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.2.15 Chrome/134.0.6998.205 Electron/35.2.1 Safari/537.36" version="26.2.15">
+  <diagram name="Page-1" id="Qy6yWp1G2rThhg9tDuAO">
+    <mxGraphModel dx="622" dy="426" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="0kN2bj3lzpDxCHG0X8xl-1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=none;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="80" width="240" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="0kN2bj3lzpDxCHG0X8xl-10" value="" style="curved=1;endArrow=none;html=1;rounded=0;startFill=0;strokeColor=#48E5C2;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="301" y="253" as="sourcePoint" />
+            <mxPoint x="150" y="140" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="136" y="301" />
+              <mxPoint x="378" y="86" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0kN2bj3lzpDxCHG0X8xl-2" value="" style="rounded=0;whiteSpace=wrap;html=1;rotation=-105;fillColor=#FCFAF9;strokeColor=none;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1" parent="1">
+          <mxGeometry x="80.96" y="203.75" width="167.41" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="0kN2bj3lzpDxCHG0X8xl-3" value="" style="rounded=0;whiteSpace=wrap;html=1;rotation=-75;fillColor=#FCFAF9;strokeColor=none;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="203.75" width="171.74" height="10" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

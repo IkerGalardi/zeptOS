@@ -57,3 +57,7 @@ mitigation mechanisms as a software-based or hardware-assisted solution.
 ## References
 
 - [xv6 source code](https://github.com/mit-pdos/xv6-riscv)
+
+## Thanks
+
+This operating system is part of the project *Cátedra de Ciberseguridad UPV/EHU - INCIBE (C08823)*, financed by *European Union NextGeneration-EU, the Recovery Plan, Transformation and Resilience, through INCIBE*.
